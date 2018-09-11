@@ -109,7 +109,7 @@ Finally, since the arguments of `classifier.train` cannot take any input, we hav
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
 
-## Testing and prediction
+## Testing and prediction
 
 The wrappers for the input functions of the evaluation and prediction steps can be defined similarly to before: 
 ```python
