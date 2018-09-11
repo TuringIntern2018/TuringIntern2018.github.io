@@ -59,6 +59,7 @@ where `train_inpf` is the input function that feeds the data into the function.
 
 Before moving to the next section, note that if you train the LinearClassifier as it is (as of 11 September 2018), this will print a warning:
 ```
+WARNING:tensorflow:Trapezoidal rule is known to produce incorrect PR-AUCs; please switch to "careful_interpolation" instead.
 ```
 To avoid this problem, you can define an alternative function to calulate the area under the curve
 ```
