@@ -1,6 +1,6 @@
 *(Introduction common to both...)*
 
-## Airline data
+# Airline data
 
 The data that we analyse in the following can be downloaded from http://stat-computing.org/dataexpo/2009/. The data contain records of all commericial flights within the USA,  from October 1987 to April 2008. The data can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
 
@@ -10,7 +10,7 @@ In what follows, we binarise the `DepDelay` column, setting each value to `True`
 
 There are also other variables that we do not take into consideration, since they cannot used to predict delays: `AirTime` in minutes, `TaxiIn`	taxi in time, in minutes, `TaxiOut`	taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.
 
-## Logistic regression with TensorFlow
+# Logistic regression with TensorFlow
 
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
 
@@ -40,7 +40,7 @@ distance = fc.numeric_column('Distance')
 cancelled = fc.categorical_column_with_vocabulary_list('Cancelled',['0','1'])
 diverted = fc.categorical_column_with_vocabulary_list('Diverted', ['0','1'])
 ```
-Note that we have used three types of columns: `fc.numeric_colimn`, for continuous variables, `fc.categorical_column_with_vocabulary_list` for categorical variables for which all the classes are known and can be easily enumerated, `fc.categorical_column_with_hash_bucket` for categorical variables with a high number of classes (such as `FlightNum`). More information about the different types of feature columns available for TensorFlow estimators can be found at https://www.tensorflow.org/guide/feature_columns
+Note that we have used three types of columns: `fc.numeric_colimn`, for continuous variables, `fc.categorical_column_with_vocabulary_list` for categorical variables for which all the classes are known and can be easily enumerated, `fc.categorical_column_with_hash_bucket` for categorical variables with a high number of classes (such as `FlightNum`). The parameter `hash_bucket_size` is an upper bound on the number of categories. More information about the different types of feature columns available for TensorFlow estimators can be found at https://www.tensorflow.org/guide/feature_columns.
 
 For clarity of exposition, we divide them into numeric and categorical columns:
 ```python
@@ -52,19 +52,34 @@ Once the Estimator has been instantiated, it can be easily trained with the `tra
 ```python
 classifier.train(train_inpf)
 ```
-where `train_inpf` is the input function that feeds the data into the function.
+where `train_inpf` is the input function that feeds the data into the function. 
+
+## Defining an input function
+The `train_inpf` is defined in three steps. 
+
+First, we need to define 
+```python
+CSV_COLUMNS = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'ArrTime', 'UniqueCarrier', 'FlightNum',  'ArrDelay', 'DepDelay', 'Origin', 'Dest', 'Distance', 'Cancelled', 'Diverted']
+LABEL_COLUMN = 'ArrDelay'
+DEFAULTS = [[""], [""], [""], [""], [0], [0], [""], [""], [0.], [0.],[""], [""], [0], [""],[""]]
+
+train_file = "*.csv"
+predict_file = "*.csv"
+```
+
+```python
+def parse_csv(value):
+      tf.logging.info('Parsing {}'.format(data_file))
+      columns = tf.decode_csv(value, record_defaults=DEFAULTS, select_cols = [0, 1, 2, 3, 4, 6, 8, 9, 14, 15, 16, 17, 18, 19, 21], na_value="NA")
+      features = dict(zip(CSV_COLUMNS, columns))
+      labels = features.pop('ArrDelay')
+      classes = tf.greater(labels, 0)  # binary classification
+      return features, classes
+```
+
 ```python
 def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       """Generate an input function for the Estimator."""
-      def parse_csv(value):
-          tf.logging.info('Parsing {}'.format(data_file))
-          columns = tf.decode_csv(value, record_defaults=DEFAULTS,
-                                        select_cols = [0, 1, 2, 3, 4, 6, 8, 9, 14, 15, 16, 17, 18, 19, 21],
-                                        na_value="NA")
-          features = dict(zip(CSV_COLUMNS, columns))
-          labels = features.pop('ArrDelay')
-          classes = tf.greater(labels, 0)  # binary classification
-          return features, classes
       # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
       filenames_dataset = tf.data.Dataset.list_files(data_file)
       # Read lines from text files
@@ -78,12 +93,17 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       dataset = dataset.batch(batch_size)
       return dataset
 ```
+Since the arguments of `classifier.train` cannot take any input, we have to wrap our input functions into a new function that does not take any argument:
+```python
+train_inpf = functools.partial(input_fn, train_file,
+                               num_epochs=1, shuffle=True, batch_size=100)
+```
 
 ```python
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
 
-## How to parallelise TensorFlow code
+# How to parallelise TensorFlow code
 
-## Pros and cons of using TensorFlow
+# Pros and cons of using TensorFlow
 
