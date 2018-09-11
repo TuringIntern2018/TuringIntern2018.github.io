@@ -57,16 +57,22 @@ where `train_inpf` is the input function that feeds the data into the function.
 ## Defining an input function
 The `train_inpf` is defined in three steps. 
 
-First, we need to define 
+### Defining input format 
+First, we need to define the names of the columns in the dataset `CSV_COLUMNS`, the corresponding default values `DEFAULTS`, and the name of the response variable `LABEL_COLUMN`.
 ```python
 CSV_COLUMNS = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'ArrTime', 'UniqueCarrier', 'FlightNum',  'ArrDelay', 'DepDelay', 'Origin', 'Dest', 'Distance', 'Cancelled', 'Diverted']
-LABEL_COLUMN = 'ArrDelay'
 DEFAULTS = [[""], [""], [""], [""], [0], [0], [""], [""], [0.], [0.],[""], [""], [0], [""],[""]]
-
-train_file = "*.csv"
-predict_file = "*.csv"
+LABEL_COLUMN = 'ArrDelay'
 ```
+Note that we have chosen `[""]` as a default for the categorical variables, `[0]` for the integer variables, and `[0.]` for the continuous variables. Defaults also define the type of the input column to be loaded from file, so it is important that they match the variable type. 
 
+### Parsing csv files
+
+To parse the csv files, we first need to be matched by the input files. In this case, after downloading the data in csv format in a dedicated folder, we can easily indicate to our parser that we want to use *all* the data in that folder during the training step. 
+```
+train_file = "*.csv"
+```
+Now we can define the parser:
 ```python
 def parse_csv(value):
       tf.logging.info('Parsing {}'.format(data_file))
@@ -79,7 +85,6 @@ def parse_csv(value):
 
 ```python
 def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
-      """Generate an input function for the Estimator."""
       # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
       filenames_dataset = tf.data.Dataset.list_files(data_file)
       # Read lines from text files
@@ -94,11 +99,6 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       return dataset
 ```
 Since the arguments of `classifier.train` cannot take any input, we have to wrap our input functions into a new function that does not take any argument:
-```python
-train_inpf = functools.partial(input_fn, train_file,
-                               num_epochs=1, shuffle=True, batch_size=100)
-```
-
 ```python
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
