@@ -55,9 +55,11 @@ classifier.train(train_inpf)
 where `train_inpf` is the input function that feeds the data into the function. 
 
 ## Defining an input function
+
 The `train_inpf` is defined in three steps. 
 
 ### Defining input format 
+
 First, we need to define the names of the columns in the dataset `CSV_COLUMNS`, the corresponding default values `DEFAULTS`, and the name of the response variable `LABEL_COLUMN`.
 ```python
 CSV_COLUMNS = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'ArrTime', 'UniqueCarrier', 'FlightNum',  'ArrDelay', 'DepDelay', 'Origin', 'Dest', 'Distance', 'Cancelled', 'Diverted']
@@ -72,6 +74,7 @@ To parse the csv files, we first need to be matched by the input files. In this 
 ```
 train_file = "*.csv"
 ```
+
 Now we can define the parser:
 ```python
 def parse_csv(value):
@@ -83,6 +86,7 @@ def parse_csv(value):
       return features, classes
 ```
 
+### 
 ```python
 def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
@@ -98,12 +102,15 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       dataset = dataset.batch(batch_size)
       return dataset
 ```
-Since the arguments of `classifier.train` cannot take any input, we have to wrap our input functions into a new function that does not take any argument:
+
+### Wrapper 
+Finally, since the arguments of `classifier.train` cannot take any input, we have to wrap our input functions into a new function that does not take any argument:
 ```python
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
 
 # How to parallelise TensorFlow code
+
 
 # Pros and cons of using TensorFlow
 
