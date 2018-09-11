@@ -12,9 +12,7 @@ There are also other variables that we do not take into consideration, since the
 
 # Logistic regression with TensorFlow
 
-We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
-
-In particular, in order to perform linear regression, we use the LinearClassifier estimator. 
+We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators. Here, in order to perform linear regression, we use the LinearClassifier estimator. 
 
 ## Training
 Instantiating and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
