@@ -106,7 +106,7 @@ def parse_csv(value):
       return features, classes
 ```
 
-### 
+### Defining the input function
 ```python
 def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
@@ -123,10 +123,26 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       return dataset
 ```
 
-### Wrapper 
+### Defining a wrapper for the input function 
 Finally, since the arguments of `classifier.train` cannot take any input, we have to wrap our input functions into a new function that does not take any argument:
 ```python
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
+```
+
+## Retrieving the regression coefficients
+
+Finally, if you want to retrieve the regression coefficients, you can use the following function:
+```
+def get_flat_weights(model):
+   weight_names = [
+       name for name in model.get_variable_names()
+       if "linear_model" in name and "Ftrl" not in name]
+   for name in model.get_variable_names():
+       print(name)
+       print(model.get_variable_value(name))
+   weight_values = [model.get_variable_value(name) for name in weight_names]
+   weights_flat = np.concatenate([item.flatten() for item in weight_values], axis=0)
+   return weight_names, weights_flat
 ```
 
 # How to parallelise TensorFlow code
