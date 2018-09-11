@@ -1,20 +1,20 @@
-Introduction...
+Introduction common to both 
 
 ## Airline data
 
 The data that we analyse in the following can be downloaded from http://stat-computing.org/dataexpo/2009/. The data contain records of all commericial flights within the USA,  from October 1987 to April 2008. The data can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
 
-Each column in the csv files corresponds to one of the following covariates: `Year` comprised between 1987 as 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` are the actual arrival and departure local times in the hhmm format, `CRSDepTime` and `CRSArrTime` are the scheduled arrival and departure local times in the hhmm format, `UniqueCarrier` is	the unique carrier code, `FlightNum` the flight number, `TailNum`	the plane tail number, `ActualElapsedTime` in minutes, `CRSElapsedTime`	in minutes, `ArrDelay`	arrival delay, in minutes, `DepDelay`	departure delay, in minutes, `Origin`	origin IATA airport code, `Dest`	destination IATA airport code, `Distance` in miles.
+Each column in the csv files corresponds to one of the following covariates: `Year` comprised between 1987 as 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` are the actual arrival and departure local times in the hhmm format, `CRSDepTime` and `CRSArrTime` are the scheduled arrival and departure local times in the hhmm format, `UniqueCarrier` is the unique carrier code, `FlightNum` the flight number, `TailNum` the plane tail number, `ActualElapsedTime` in minutes, `CRSElapsedTime` in minutes, `ArrDelay` arrival delay, in minutes, `DepDelay` departure delay, in minutes, `Origin` origin IATA airport code, `Dest` destination IATA airport code, `Distance` in miles.
 
-In what follows, we binarise the `DepDelay` column, setting each value to `True` if the `DepDelay` is greater than 0, and False otherwise. We use this variable as our response, and 
+In what follows, we binarise the `DepDelay` column, setting each value to `True` if the `DepDelay` is greater than zero, and False otherwise. We use this variable as our response, and 
 
-There are also other variables that we do not take into consideration, since they cannot used to predict delays: `AirTime`	in minutes, `TaxiIn`	taxi in time, in minutes, `TaxiOut`	taxi out time in minutes, `Cancelled`	was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted`	1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay`	in minutes, `LateAircraftDelay`	in minutes.
+There are also other variables that we do not take into consideration, since they cannot used to predict delays: `AirTime` in minutes, `TaxiIn`	taxi in time, in minutes, `TaxiOut`	taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.
 
 ## Logistic regression with TensorFlow
 
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
 
-In particular, in order to perform linear regression, we are going to use the LinearClassifier etimator. Instantiating, and training a LinearClassifier is really simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
+In particular, in order to perform linear regression, we use the LinearClassifier etimator. Instantiating, and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
 ```
 import tensorflow as tf
 classifier = tf.estimator.LinearClassifier(
@@ -22,6 +22,7 @@ classifier = tf.estimator.LinearClassifier(
 ```
 For the airline data, the columns can be defined as:
 ```
+import tensorflow.feature_column as fc
 
 year = fc.categorical_column_with_vocabulary_list('Year', ['1987', '1988', '1989', '1990', '1991', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999', '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008'])
 month = fc.categorical_column_with_vocabulary_list('Month', ['1','2','3','4','5','6','7','8','9','10','11','12'])
@@ -39,13 +40,24 @@ distance = fc.numeric_column('Distance')
 cancelled = fc.categorical_column_with_vocabulary_list('Cancelled',['0','1'])
 diverted = fc.categorical_column_with_vocabulary_list('Diverted', ['0','1'])
 ```
+Note that we have used three types of columns: `fc.numeric_colimn`, for continuous variables, `fc.categorical_column_with_vocabulary_list` for categorical variables for which all the classes are known and can be easily enumerated, `fc.categorical_column_with_hash_bucket` for categorical variables with a high number of classes (such as `FlightNum`). More information about the different types of feature columns available for TensorFlow estimators can be found at https://www.tensorflow.org/guide/feature_columns
 
+For clarity of exposition, we divide them into numeric and categorical columns:
+```
+my_numeric_columns = [deptime, arrtime, distance] #depdelay
+my_categorical_columns = [year, month, dayofmonth, dayofweek, uniquecarrier,
+            flightnum, origin, dest, cancelled, diverted]
+```
+Once the Estimator has been instantiated, it can be easily trained with the `train` method:
 ```
 classifier.train(train_inpf)
 ```
-where we have defined 
+where `train_inpf` is the input function that feeds the data into the function.
+
 You can read more about Estimators here https://www.tensorflow.org/guide/estimators 
 
+
+## How to parallelise TensorFlow code
 
 ## Pros and cons of using TensorFlow
 
