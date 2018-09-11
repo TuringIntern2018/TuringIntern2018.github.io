@@ -1,4 +1,4 @@
-Introduction common to both 
+*(Introduction common to both...)*
 
 ## Airline data
 
@@ -14,7 +14,7 @@ There are also other variables that we do not take into consideration, since the
 
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
 
-In particular, in order to perform linear regression, we use the LinearClassifier etimator. Instantiating, and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
+In particular, in order to perform linear regression, we use the LinearClassifier estimator. Instantiating, and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
 ```python
 import tensorflow as tf
 classifier = tf.estimator.LinearClassifier(
@@ -82,7 +82,6 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
 ```python
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
-You can read more about Estimators here https://www.tensorflow.org/guide/estimators 
 
 ## How to parallelise TensorFlow code
 
