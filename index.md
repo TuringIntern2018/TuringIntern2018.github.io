@@ -15,13 +15,13 @@ There are also other variables that we do not take into consideration, since the
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
 
 In particular, in order to perform linear regression, we use the LinearClassifier etimator. Instantiating, and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
-```
+```python
 import tensorflow as tf
 classifier = tf.estimator.LinearClassifier(
             feature_columns=my_numeric_columns+my_categorical_columns)
 ```
 For the airline data, the columns can be defined as:
-```
+```python
 import tensorflow.feature_column as fc
 
 year = fc.categorical_column_with_vocabulary_list('Year', ['1987', '1988', '1989', '1990', '1991', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999', '2000', '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008'])
@@ -43,19 +43,46 @@ diverted = fc.categorical_column_with_vocabulary_list('Diverted', ['0','1'])
 Note that we have used three types of columns: `fc.numeric_colimn`, for continuous variables, `fc.categorical_column_with_vocabulary_list` for categorical variables for which all the classes are known and can be easily enumerated, `fc.categorical_column_with_hash_bucket` for categorical variables with a high number of classes (such as `FlightNum`). More information about the different types of feature columns available for TensorFlow estimators can be found at https://www.tensorflow.org/guide/feature_columns
 
 For clarity of exposition, we divide them into numeric and categorical columns:
-```
+```python
 my_numeric_columns = [deptime, arrtime, distance] #depdelay
 my_categorical_columns = [year, month, dayofmonth, dayofweek, uniquecarrier,
             flightnum, origin, dest, cancelled, diverted]
 ```
 Once the Estimator has been instantiated, it can be easily trained with the `train` method:
-```
+```python
 classifier.train(train_inpf)
 ```
 where `train_inpf` is the input function that feeds the data into the function.
+```python
+def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
+      """Generate an input function for the Estimator."""
+      def parse_csv(value):
+          tf.logging.info('Parsing {}'.format(data_file))
+          columns = tf.decode_csv(value, record_defaults=DEFAULTS,
+                                        select_cols = [0, 1, 2, 3, 4, 6, 8, 9, 14, 15, 16, 17, 18, 19, 21],
+                                        na_value="NA")
+          features = dict(zip(CSV_COLUMNS, columns))
+          labels = features.pop('ArrDelay')
+          classes = tf.greater(labels, 0)  # binary classification
+          return features, classes
+      # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
+      filenames_dataset = tf.data.Dataset.list_files(data_file)
+      # Read lines from text files
+      textlines_dataset = filenames_dataset.flat_map(tf.data.TextLineDataset)
+      # Parse text lines as comma-separated values (CSV)
+      dataset = textlines_dataset.map(parse_csv)
+      if shuffle:
+          dataset = dataset.shuffle(buffer_size=buffer_size)
+      # We call repeat after shuffling, rather than before, to prevent separate epochs from blending together.
+      dataset = dataset.repeat(num_epochs)
+      dataset = dataset.batch(batch_size)
+      return dataset
+```
 
+```python
+train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
+```
 You can read more about Estimators here https://www.tensorflow.org/guide/estimators 
-
 
 ## How to parallelise TensorFlow code
 
