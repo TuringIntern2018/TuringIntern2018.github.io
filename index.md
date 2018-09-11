@@ -46,33 +46,13 @@ Note that we have used three types of columns: `fc.numeric_colimn`, for continuo
 For clarity of exposition, we divide them into numeric and categorical columns:
 ```python
 my_numeric_columns = [deptime, arrtime, distance] #depdelay
-my_categorical_columns = [year, month, dayofmonth, dayofweek, uniquecarrier,
-            flightnum, origin, dest, cancelled, diverted]
+my_categorical_columns = [year, month, dayofmonth, dayofweek, uniquecarrier, flightnum, origin, dest, cancelled, diverted]
 ```
 Once the Estimator has been instantiated, it can be easily trained with the `train` method:
 ```python
 classifier.train(train_inpf)
 ```
 where `train_inpf` is the input function that feeds the data into the function. 
-
-Before moving to the next section, note that if you train the LinearClassifier as it is (as of 11 September 2018), this will print a warning:
-```
-WARNING:tensorflow:Trapezoidal rule is known to produce incorrect PR-AUCs; please switch to "careful_interpolation" instead.
-```
-To avoid this problem, you can define an alternative function to calulate the area under the curve
-```
-def metric_auc(labels, predictions):
-    return {
-        'auc_precision_recall': tf.metrics.auc(
-            labels=labels, predictions=predictions['logistic'], num_thresholds=200,
-            curve='PR', summation_method='careful_interpolation')
-    }
-```
-and add it to your classifier
-```
-classifier = tf.contrib.estimator.add_metrics(classifier, metric_auc)
-```
-Since the new metric has the same name of the existing one, the latter will be overwritten.
 
 ## Defining an input function
 
@@ -129,6 +109,48 @@ Finally, since the arguments of `classifier.train` cannot take any input, we hav
 train_inpf = functools.partial(input_fn, train_file, num_epochs=1, shuffle=True, batch_size=100)
 ```
 
+## Testing and prediction
+
+The wrappers for the input functions of the evaluation and prediction steps can be defined similarly to before: 
+```python
+eval_inpf = functools.partial(input_fn, predict_file, num_epochs=1, shuffle=False, batch_size=100)
+predict_inpf = functools.partial(input_fn, predict_file, num_epochs=1, shuffle=False, batch_size=100)
+```
+
+Just like training, evaluation of an Estimator is encapsulated in one function:
+```python
+result = classifier.evaluate(test_inpf)
+```
+The output of the evaluation is a set of metrics that can be displayed 
+```python
+for key,value in sorted(result.items()):
+  print('%s: %s' % (key, value))
+```
+Similarly for prediction:
+```python
+pred_results = classifier.predict(input_fn=predict_inpf)
+for i in range(10):
+    print(next(pred_results))
+```
+Before moving to the next section, note that if you train the LinearClassifier (as of 11 September 2018), this will print a warning:
+```
+WARNING:tensorflow:Trapezoidal rule is known to produce incorrect PR-AUCs; please switch to "careful_interpolation" instead.
+```
+To avoid this problem, you can define an alternative function to calulate the area under the curve
+```
+def metric_auc(labels, predictions):
+    return {
+        'auc_precision_recall': tf.metrics.auc(
+            labels=labels, predictions=predictions['logistic'], num_thresholds=200,
+            curve='PR', summation_method='careful_interpolation')
+    }
+```
+and add it to your classifier
+```
+classifier = tf.contrib.estimator.add_metrics(classifier, metric_auc)
+```
+Since the new metric has the same name of the existing one, the latter will be overwritten.
+
 ## Retrieving the regression coefficients
 
 Finally, if you want to retrieve the regression coefficients, you can use the following function:
@@ -144,7 +166,6 @@ def get_flat_weights(model):
    weights_flat = np.concatenate([item.flatten() for item in weight_values], axis=0)
    return weight_names, weights_flat
 ```
-
 # How to parallelise TensorFlow code
 
 
