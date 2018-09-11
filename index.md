@@ -14,7 +14,10 @@ There are also other variables that we do not take into consideration, since the
 
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. You can lear more about Estimators here: https://www.tensorflow.org/guide/estimators.
 
-In particular, in order to perform linear regression, we use the LinearClassifier estimator. Instantiating, and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
+In particular, in order to perform linear regression, we use the LinearClassifier estimator. 
+
+## Training
+Instantiating and training a LinearClassifier is very simple. Assuming to have defined a set of numeric columns `my_numeric_columns` and categorical columns `my_categorical_columns`, we can istantiate a LinearClassifier as follows:
 ```python
 import tensorflow as tf
 classifier = tf.estimator.LinearClassifier(
@@ -53,6 +56,24 @@ Once the Estimator has been instantiated, it can be easily trained with the `tra
 classifier.train(train_inpf)
 ```
 where `train_inpf` is the input function that feeds the data into the function. 
+
+Before moving to the next section, note that if you train the LinearClassifier as it is (as of 11 September 2018), this will print a warning:
+```
+```
+To avoid this problem, you can define an alternative function to calulate the area under the curve
+```
+def metric_auc(labels, predictions):
+    return {
+        'auc_precision_recall': tf.metrics.auc(
+            labels=labels, predictions=predictions['logistic'], num_thresholds=200,
+            curve='PR', summation_method='careful_interpolation')
+    }
+```
+and add it to your classifier
+```
+classifier = tf.contrib.estimator.add_metrics(classifier, metric_auc)
+```
+Since the new metric has the same name of the existing one, the latter will be overwritten.
 
 ## Defining an input function
 
