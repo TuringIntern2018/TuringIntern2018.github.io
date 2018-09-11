@@ -137,7 +137,7 @@ Before moving to the next section, note that if you train the LinearClassifier (
 WARNING:tensorflow:Trapezoidal rule is known to produce incorrect PR-AUCs; please switch to "careful_interpolation" instead.
 ```
 To avoid this problem, you can define an alternative function to calulate the area under the curve
-```
+```python
 def metric_auc(labels, predictions):
     return {
         'auc_precision_recall': tf.metrics.auc(
@@ -146,7 +146,7 @@ def metric_auc(labels, predictions):
     }
 ```
 and add it to your classifier
-```
+```python
 classifier = tf.contrib.estimator.add_metrics(classifier, metric_auc)
 ```
 Since the new metric has the same name of the existing one, the latter will be overwritten.
@@ -154,7 +154,7 @@ Since the new metric has the same name of the existing one, the latter will be o
 ## Retrieving the regression coefficients
 
 Finally, if you want to retrieve the regression coefficients, you can use the following function:
-```
+```python
 def get_flat_weights(model):
    weight_names = [
        name for name in model.get_variable_names()
