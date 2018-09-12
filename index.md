@@ -180,7 +180,7 @@ logistictestdata, logistictrainingdata = logisticdata2.randomSplit(weights=[0.15
 
 ```
 
-The actual fitting of the logistic regression model is relatively straightforward. Key parameters to keep in mind are the regularisation parameters. 'elasticNetParam' controls the type of parameterisation, which when at 0 and 1 denotes ridge regression and LASSO regression respectively (latter of which we chose here) and everything between a linear combination of both. 'regParam' controls the degree of parametrisation.
+The actual fitting of the logistic regression model is relatively straightforward. Key parameters to keep in mind are the regularisation parameters. 'elasticNetParam' controls the type of parameterisation, which when at 0 and 1 denotes ridge regression and LASSO regression respectively (latter of which we chose here) and everything between a linear combination of both. 'regParam' controls the degree of parametrisation. Here we also time how long the regression takes to train. 
 
 ```python
 
@@ -199,6 +199,62 @@ end = time.time()
 
 timetaken=end-start
 print(timetaken)
+
+```
+
+After training the model, we would like to make some predictions and evaluate the model on the test set. This is relatively straightforward to do and we can write the resulting precision and recall of the model predictions to a csv file, which can be easily used to plot a precision-recall graph in Python or R for instance. 
+
+```python
+
+predictions = linearModelgen.evaluate(logistictestdata)
+
+testSummary = predictions
+
+print(type(testSummary))
+
+
+print('start')
+start1 = time.time()
+prtest = testSummary.pr.toPandas()
+end1 = time.time()
+print('done')
+
+timetaken1=end1-start1
+print(timetaken1)
+
+prtest.to_csv('airplanetestsummary.csv')
+
+print(prtest['recall'])
+
+print(prtest['precision'])
+
+print(type(testSummary))
+
+```
+
+The model coefficients can be retrieved but it's just given as a list of numbers. To map the coefficients back to the original features they correspond to is a bit fiddly but doable below, and again printed to a csv file.
+
+```python
+
+modelcoefficients=np.array(linearModelgen.coefficients)
+
+names=[x["name"] for x in sorted(logistictrainingdata.schema["features"].metadata["ml_attr"]["attrs"]["binary"]+
+   logistictrainingdata.schema["features"].metadata["ml_attr"]["attrs"]["numeric"], 
+   key=lambda x: x["idx"])]
+
+
+matchcoefs=np.column_stack((modelcoefficients,np.array(names)))
+
+import pandas as pd
+
+matchcoefsdf=pd.DataFrame(matchcoefs)
+
+matchcoefsdf.columns=['Coefvalue', 'Feature']
+
+print(matchcoefsdf)
+
+matchcoefsdf.to_csv('Airplanecoefspd1.csv')
+
 
 ```
 
