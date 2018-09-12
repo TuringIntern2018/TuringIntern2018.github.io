@@ -206,8 +206,7 @@ done
 
 
 
-
-```python
+<!---
 def main(_):
     ps_hosts = FLAGS.ps_hosts.split(",")
     worker_hosts = FLAGS.worker_hosts.split(",")
@@ -300,7 +299,7 @@ def main(_):
                 average_loss=eval_result["average_loss"]   
                 with open("timings.csv", "a") as myfile:
                     myfile.write("\n Task index %d, Time %f, RMSE %f" % (FLAGS.task_index, t1-t0, average_loss**0.5))
-```
+--> 
 
 # Pros and cons of using TensorFlow
 
