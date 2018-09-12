@@ -64,9 +64,19 @@ print('start')
 data1987=data1987.withColumn("Delay", when(data1987["ArrDelay"] > 0, 1).otherwise(0))
 ```
 
-Next we do some feature engineering. Here we treat 'Distance', and 'Year' as numerical variables, and we introduce higher polynomial terms of both into the data after standardising both columns. It might be strange to treat 'Year' as a numerical variable rather than categorical but sometimes it's desirable to predict delays in future years based on data in previous years which would not be possible to do if 'Year' was a categorical variable. Furthermore, we add sine and cosine of the CRSDepTime and CRSArrTime (expected depart and arrival times) columns with period 2400 to reflect the periodic nature of time. In a sense this is a first order Fourier series regression of both columns, somewhat similar to how linear regression is a 'first order polynomial regression'
+Next we do some feature engineering. Here we treat 'Distance', and 'Year' as numerical variables, and we introduce higher polynomial terms of both into the data after standardising both columns, up to 3rd and 6th power for both respectively. It might be strange to treat 'Year' as a numerical variable rather than categorical but sometimes it's desirable to predict delays in future years based on data in previous years which would not be possible to do if 'Year' was a categorical variable. Furthermore, we add sine and cosine of the CRSDepTime and CRSArrTime (expected depart and arrival times) columns with period 2400 to reflect the periodic nature of time. In a sense this is a first order Fourier series regression of both columns, somewhat similar to how linear regression is a 'first order polynomial regression'
 
 ```python
+from pyspark.ml.linalg import DenseVector
+from pyspark.ml.feature import StandardScaler
+from pyspark.mllib.regression import LabeledPoint
+from pyspark.mllib.feature import StandardScaler
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml.regression import LinearRegression
+from pyspark.mllib.regression import LinearRegressionWithSGD
+from pyspark.ml.feature import StringIndexer
+from pyspark.ml.feature import OneHotEncoder
+from pyspark.ml.feature import VectorAssembler
 
 degree=4
 degreeyear=7
@@ -117,7 +127,7 @@ data1987 = data1987.withColumn("CRSArrTimeSine", sin(data1987["CRSArrTime"]*2*pi
 print('done')
 ```
 
-Next we get rid of all rows which denote cancelled flights as cancelled flights have 'NA' for the flight delay columns and are generally a bit different from actual flight delays which we're trying to predict. Categorical variables in Spark are a bit more fiddly (compared to say R or Python) to get into the required form for regression analysis.
+Next we get rid of all rows which denote cancelled flights as cancelled flights have 'NA' for the flight delay columns and are generally a bit different from actual flight delays which we're trying to predict. Categorical variables in Spark can be a bit fiddly (compared to say R or Python), but it's basically the same as principle as one hot encoding in the standard Python sklearn library which turns categorical variables with say K categories into K-1 columns where the ith column returns 1 for the first category and 0 otherwise. .
 
 ```python
 
@@ -129,7 +139,6 @@ logisticdata=data1987.select("Delay","Year","Month","DayofMonth","DayofWeek","CR
 'Distance2', 'Distance3', 'Yearst', 'Yearst2', 'Yearst3', 'Yearst4', 'Yearst5','Yearst6')
 
 categorical_variables=["Month","DayofMonth","DayofWeek","UniqueCarrier","Origin","Dest"]
-#'Cancelled', 'Diverted'
 
 for variable in categorical_variables:
     #converts string variables to numerical indices e.g. January to 1, February to 2 etc.
@@ -146,5 +155,51 @@ print('finished dropping')
     
 print(logisticdata.take(2))
 
+```
+
+Furthermore, data has to be structured into a specific form before it can be passed to the LogisticRegression class in Spark. Specifically every feature column needs to be condensed into a 'DenseVector' column which we dub 'features' via the 'VectorAssembler' transformer. Here we also split the data into a training and test data sets in the ratio of 85:15.
+
+```python
+
+from pyspark.ml.feature import VectorAssembler
+
+logisticdata2=logisticdata.select("Delay","Monthvec","DayofMonthvec","DayofWeekvec","CRSDepTime","CRSArrTime","UniqueCarriervec","CRSElapsedTime","Originvec"
+                            ,"Destvec", "Year","CRSDepTimeCosine","CRSDepTimeSine","CRSArrTimeCosine","CRSArrTimeSine","Distance", 'Distance2', 'Distance3', 'Yearst', 'Yearst2', 'Yearst3', 'Yearst4', 'Yearst5','Yearst6')
+
+
+assembler = VectorAssembler(
+    inputCols=["CRSDepTime","CRSArrTime","CRSElapsedTime","Monthvec", "DayofMonthvec", "DayofWeekvec", "UniqueCarriervec", "Originvec", "Destvec", "CRSDepTimeCosine","CRSDepTimeSine","CRSArrTimeCosine","CRSArrTimeSine","Distance",'Distance2', 'Distance3','Yearst', 'Yearst2', 'Yearst3', 'Yearst4', 'Yearst5','Yearst6'],
+    outputCol="features")
+
+logisticdata2 = assembler.transform(logisticdata2)
+
+
+logisticdata2=logisticdata2.select("Year","Delay","features")
+
+logistictestdata, logistictrainingdata = logisticdata2.randomSplit(weights=[0.15, 0.85],  seed=12345)
+
+```
+
+The actual fitting of the logistic regression model is relatively straightforward. Key parameters to keep in mind are the regularisation parameters. 'elasticNetParam' controls the type of parameterisation, which when at 0 and 1 denotes ridge regression and LASSO regression respectively (latter of which we chose here) and everything between a linear combination of both. 'regParam' controls the degree of parametrisation.
+
+```python
+
+lrgen = LogisticRegression(labelCol="Delay", featuresCol="features", maxIter=100, regParam=0.001, elasticNetParam=1, standardization=True)
+# Fit the data to the model
+print('lrgen done')
+
+import time
+import datetime
+
+start = time.time()
+
+linearModelgen = lrgen.fit(logistictrainingdata)
+
+end = time.time()
+
+timetaken=end-start
+print(timetaken)
+
+```
 
 ```
