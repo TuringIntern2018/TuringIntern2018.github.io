@@ -43,3 +43,108 @@ For fastest performance use all 324 cores, but if total memory exceeds around 18
 In general (min(spark.cores.max, 324)/spark.executor.cores)*spark.executor.memory<=1800
 
 If running on Mesos Spark takes a few seconds to initialise so it's a good idea to ask Python to wait 10 seconds before running any computation.
+
+Next we read in the Airlines dataset, which is split by year between 1987 and 2008. First we read in the data from 1987, then iteratively append the data from each new year to our 1987 data until we reach 2008. A new column called 'Delay' is defined which is a binary variable that returns 1 if the flight was delayed and 0 otherwise.
+
+```python
+from pyspark.sql import Row
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+
+data1987=spark.read.csv(
+    "file:///home/users/jwang/Airline/1987.csv", header=True, inferSchema=True)
+
+for year in range(1988,2009):
+    datayear=spark.read.csv(
+    "file:///home/users/jwang/Airline/{}.csv".format(year), header=True, inferSchema=True)
+    data1987=data1987.union(datayear)
+
+
+print('start')
+data1987=data1987.withColumn("Delay", when(data1987["ArrDelay"] > 0, 1).otherwise(0))
+```
+
+Next we do some feature engineering. Here we treat 'Distance', and 'Year' as numerical variables, and we introduce higher polynomial terms of both into the data after standardising both columns. It might be strange to treat 'Year' as a numerical variable rather than categorical but sometimes it's desirable to predict delays in future years based on data in previous years which would not be possible to do if 'Year' was a categorical variable. Furthermore, we add sine and cosine of the CRSDepTime and CRSArrTime (expected depart and arrival times) columns with period 2400 to reflect the periodic nature of time. In a sense this is a first order Fourier series regression of both columns, somewhat similar to how linear regression is a 'first order polynomial regression'
+
+```python
+
+degree=4
+degreeyear=7
+
+from pyspark.sql.functions import mean as _mean, stddev as _stddev, col
+
+data1987 = data1987.withColumn("Distance", data1987["Distance"].cast(DoubleType()))
+data1987 = data1987.withColumn("CRSElapsedTime", data1987["CRSElapsedTime"].cast(DoubleType()))
+
+df_stats = data1987.select(
+    _mean(col('Distance')).alias('distmean'),
+    _stddev(col('Distance')).alias('diststd')
+).collect()
+
+distmean = df_stats[0]['distmean']
+diststd = df_stats[0]['diststd']
+
+data1987 = data1987.withColumn("Distance", (col("Distance") - distmean) / diststd)
+
+
+df_stats2 = data1987.select(
+    _mean(col('Year')).alias('yearmean'),
+    _stddev(col('Year')).alias('yearstd')
+).collect()
+
+yearmean = df_stats2[0]['yearmean']
+yearstd = df_stats2[0]['yearstd']
+
+data1987 = data1987.withColumn("Yearst", (col("Year") - yearmean) / yearstd)
+
+
+for i in range(2,degree):
+    data1987 = data1987.withColumn("Distance"+str(i), data1987["Distance"]**i)
+    
+for i in range(2,degreeyear):
+    data1987 = data1987.withColumn("Yearst"+str(i), data1987["Yearst"]**i)
+    
+pi=math.pi
+
+data1987 = data1987.withColumn("CRSDepTimeCosine", cos(data1987["CRSDepTime"]*2*pi/2400))
+
+data1987 = data1987.withColumn("CRSDepTimeSine", sin(data1987["CRSDepTime"]*2*pi/2400))
+
+data1987 = data1987.withColumn("CRSArrTimeCosine", cos(data1987["CRSArrTime"]*2*pi/2400))
+
+data1987 = data1987.withColumn("CRSArrTimeSine", sin(data1987["CRSArrTime"]*2*pi/2400))
+    
+print('done')
+```
+
+Next we get rid of all rows which denote cancelled flights as cancelled flights have 'NA' for the flight delay columns and are generally a bit different from actual flight delays which we're trying to predict. Categorical variables in Spark are a bit more fiddly (compared to say R or Python) to get into the required form for regression analysis.
+
+```python
+
+data1987=data1987.filter(data1987["Cancelled"]==0)
+
+
+logisticdata=data1987.select("Delay","Year","Month","DayofMonth","DayofWeek","CRSDepTime","CRSArrTime","UniqueCarrier",
+"CRSElapsedTime","Origin","Dest","CRSDepTimeCosine","CRSDepTimeSine","CRSArrTimeCosine","CRSArrTimeSine","Distance",
+'Distance2', 'Distance3', 'Yearst', 'Yearst2', 'Yearst3', 'Yearst4', 'Yearst5','Yearst6')
+
+categorical_variables=["Month","DayofMonth","DayofWeek","UniqueCarrier","Origin","Dest"]
+#'Cancelled', 'Diverted'
+
+for variable in categorical_variables:
+    #converts string variables to numerical indices e.g. January to 1, February to 2 etc.
+    indexer = StringIndexer(inputCol=variable, outputCol=variable+"index")
+    logisticdata = indexer.fit(logisticdata).transform(logisticdata)
+ 
+    #explodes the now numerical categorical variables into binary variables 
+    encoder = OneHotEncoder(inputCol=variable+"index", outputCol=variable+"vec")
+    logisticdata = encoder.transform(logisticdata)   
+
+print('dropping')
+logisticdata=logisticdata.na.drop()
+print('finished dropping')    
+    
+print(logisticdata.take(2))
+
+
+```
