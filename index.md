@@ -212,13 +212,14 @@ mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node3 \
             --worker_hosts=node2:2222,node3:2222 \
             --num_workers=2 \
             --job_name=worker \
-            --task_index=0 \
+            --task_index=1 \
             > output-second-worker.txt &
 ```
-The `-n 1` and `-N 1` flags indicate the number of jobs to be started and the number of nodes to be used. `--cpus-per-task` sets the number of CPUs to be used on that node  
+On Urika-GX, the `-n 1` and `-N 1` flags indicate the number of jobs to be started and the number of nodes to be used. `--cpus-per-task` sets the number of CPUs to be used for each job and `--nodelist` is used to specify the name of the node on which the job will run. Here, for simplicity, we assume to have three nodes named `node1`, `node2`, and `node3`.
+The rest of the script can be used on any platform. 
 
-In this example we allocate 36 CPUs to each parallel job. TensorFlow automatically detects all the CPUs available on the same node 
-However, we found that in practice the stochastic gradient descent algorithms implemented in TensorFlow for linear and logistic regression only use one or two CPUs 
+In this example we allocate 36 CPUs to each parallel job. TensorFlow automatically detects all the CPUs available on the same node and decides which part of the job to allocate to each one. 
+However, we found that in practice the stochastic gradient descent algorithms implemented in TensorFlow for linear and logistic regression only use one or two CPUs. Therefore, it is more efficient to run multiple jobs on the same node, by assigning multiple jobs to the same node, with different ports. Here we give a simple example with one parameter server and two workers, all running on node one. 
 
 ```shell-script
 mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
@@ -249,13 +250,14 @@ mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
             > output-second-worker.txt &
 ```
 
+
 ## Split up the tasks between the parameter servers and the workers
 The `linear-classifier-parallel.py` file will be a Python script containing:
 * a parser, to process the input options such as the job name, task index, etc. 
 * a `main` function, in which the TensorFlow cluster is set up and different tasks are assigned to the parameter servers and workers
 * the code presented in the "Logistic regression with TensorFlow" section. The only difference is that, if more than one worker is set up, you need to make sure that each worker loads a different batch of data. To this end, you can use the `dataset.shard()` method as explained below. 
 
-For the parser...
+The parser can be defined as follows:
 ```python
 import argparse
 import sys
@@ -276,9 +278,9 @@ if __name__ == "__main__":
       tf.logging.set_verbosity(tf.logging.WARN)
       tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
 ```
-Notice that the parser can also be used to provide other optional inputs to the main function, such as the L1 and L2 regularisation strength or the batch size. 
+Notice that it can also be used to provide other optional inputs to the main function, such as the L1 and L2 regularisation strength or the batch size. 
 
-The `main` function...
+The `main` function is called by the parser and is used to set up the cluster, divide the work between the parameter server and the workers and then run the main part of your code.
 ```python
 def main(_):
       ps_hosts = FLAGS.ps_hosts.split(",")
@@ -307,7 +309,7 @@ def main(_):
                         
 ```
 
-Modified input function...
+With Estimators, if the data is read from file, the only thing that changes between the code for sequential and parallel jobs is how the data is loaded by each worker. In order to specify which batch of data should be read by each worker, you can use the `dataset.shard` method as described below. This will make sure that the first batch of data will be read by worker 0, the second one by worker 1, and so on.
 ```python
 def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
