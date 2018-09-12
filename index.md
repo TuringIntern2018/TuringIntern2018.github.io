@@ -2,13 +2,16 @@
 
 # Airline data
 
-The data that we analyse in the following can be downloaded from http://stat-computing.org/dataexpo/2009/. The data contain records of all commericial flights within the USA,  from October 1987 to April 2008. The data can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
+In the following, we analyse the airline dataset, publicly available for download from http://stat-computing.org/dataexpo/2009/. The data contains records of all commericial flights within the USA,  from October 1987 to April 2008. It can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
 
-Each column in the csv files corresponds to one of the following covariates: `Year` comprised between 1987 and 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` are the actual arrival and departure local times in the hhmm format, `CRSDepTime` and `CRSArrTime` are the scheduled arrival and departure local times in the hhmm format, `UniqueCarrier` is the unique carrier code, `FlightNum` the flight number, `TailNum` the plane tail number, `ActualElapsedTime` in minutes, `CRSElapsedTime` in minutes, `ArrDelay` arrival delay, in minutes, `DepDelay` departure delay, in minutes, `Origin` origin IATA airport code, `Dest` destination IATA airport code, `Distance` in miles.
+Each column in the csv files corresponds to one of the following covariates. For example:`Year` comprised between 1987 and 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` the actual arrival and departure local times in the hhmm format, `CRSDepTime` and `CRSArrTime` the scheduled arrival and departure local times in the hhmm format, `UniqueCarrier` the unique carrier code, `FlightNum` the flight number, `TailNum` the plane tail number, `ActualElapsedTime` and `CRSElapsedTime` actual and expected flight time in minutes, `ArrDelay` arrival delay, in minutes, `DepDelay` departure delay, in minutes, `Origin` origin IATA airport code, `Dest` destination IATA airport code, `Distance` in miles.
 
-In what follows, we binarise the `DepDelay` column, setting each value to `True` if the `DepDelay` is greater than zero, and False otherwise. We use this variable as our response, and 
+Using this information, we want to see if it is possible to predict whether a flight will be delayed or not, making use of the information available before the departure. 
 
-There are also other variables that we do not take into consideration, since they cannot used to predict delays: `AirTime` in minutes, `TaxiIn`	taxi in time, in minutes, `TaxiOut`	taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.
+Therefore, in what follows, we binarise the `DepDelay` column, setting each value to `True` if the `DepDelay` is greater than zero, and False otherwise. Using this variable as our response, we perform logistic regression on the other covariates. The goal is to be able to do out-of-sample prediction and identify which variables influence delays the most.
+
+[comment]: <> (There are also other variables that we do not take into consideration, since they cannot used to predict delays: `AirTime` in minutes, `TaxiIn` taxi in time, in minutes, `TaxiOut` taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.)
+
 
 # Logistic regression with TensorFlow
 
