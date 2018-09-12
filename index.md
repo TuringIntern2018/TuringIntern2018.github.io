@@ -4,9 +4,9 @@
 
 In the following, we analyse the airline dataset, publicly available for download from http://stat-computing.org/dataexpo/2009/. The data contains records of all commericial flights within the USA,  from October 1987 to April 2008. It can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
 
-Each column in the csv files corresponds to one of the following covariates. Among others:`Year` comprised between 1987 and 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` the actual arrival and departure local times in the hhmm format,`UniqueCarrier` the unique carrier code, `FlightNum` the flight number, `TailNum` the plane tail number, `ActualElapsedTime` and `CRSElapsedTime` actual and expected flight time in minutes, `ArrDelay` arrival delay, in minutes, `DepDelay` departure delay, in minutes, `Origin` origin IATA airport code, `Dest` destination IATA airport code, `Distance` in miles.
+Each column in the csv files corresponds to one of the following covariates. Among others:`Year` comprised between 1987 and 2008, `Month`, `DayOfMonth`, `DayOfWeek` expressed as integers (for the days of the week, 1 is Monday), `DepTime` and `ArrTime` the actual arrival and departure local times in the hhmm format,`UniqueCarrier` the unique carrier code, `FlightNum` the flight number, `TailNum` the plane tail number, `ActualElapsedTime` and `CRSElapsedTime` actual and expected flight time in minutes, `ArrDelay` arrival delay, in minutes, `DepDelay` departure delay in minutes, `Origin` origin IATA airport code, `Dest` destination IATA airport code, `Distance` in miles.
 
-Using this information, we want to see if it is possible to predict whether a flight will be delayed or not, making use of the information available before the departure. Therefore, in what follows, we binarise the `DepDelay` column, setting each value to True if the `DepDelay` is greater than zero, and False otherwise. Using this variable as our response, we perform logistic regression on the other covariates. The goal is to be able to do out-of-sample prediction and identify which variables influence delays the most.
+Using this information, we want to see if it is possible to predict whether a flight will be delayed or not, making use of the information available before the departure. Therefore, in what follows, we binarise the `ArrDelay` column, setting each value to True if the `ArrDelay` is greater than zero, and False otherwise. Using this variable as our response, we perform logistic regression on the other covariates. The goal is to be able to do out-of-sample prediction and identify which variables influence delays the most.
 
 <!--- (There are also other variables that we do not take into consideration, since they cannot used to predict delays:  `CRSDepTime` and `CRSArrTime` the scheduled arrival and departure local times in the hhmm format, `AirTime` in minutes, `TaxiIn` taxi in time, in minutes, `TaxiOut` taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.) -->
 
@@ -173,8 +173,15 @@ def get_flat_weights(model):
    weights_flat = np.concatenate([item.flatten() for item in weight_values], axis=0)
    return weight_names, weights_flat
 ```
+The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
+
+# Linear regression with TensorFlow
+
+Same but with LinearRegressor Estimator and without binarising the 'ArrDelay' variable. 
+The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
+
 # How to parallelise TensorFlow code
-The guidelines given here to run the above code in a distributed setting are specific to the Urika-GX platform. However, they can be easily be generalised to any other platform by replacing the commands to start a job and the node names as needed.
+The guidelines given here to run linear and logistic regression with TensorFlow in a distributed setting are specific to the Urika-GX platform. However, they can be easily be generalised to any other platform by replacing the commands to start a job and the node names as needed.
 
 ## Setting up the cluster
 From the TensorFlow website: *A TensorFlow "cluster" is a set of "tasks" that participate in the distributed execution of a TensorFlow graph. Each task is associated with a TensorFlow "server", which contains a "master" that can be used to create sessions, and a "worker" that executes operations in the graph. A cluster can also be divided into one or more "jobs", where each job contains one or more tasks.*
@@ -190,19 +197,52 @@ mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node1 \
             --task_index=0 \
             > output-parameter-server.txt &
 
-mrun -n 1 -N 1 --cpus-per-task=36 --shared --nodelist=node2 \
+mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node2 \
       python linear-classifier-parallel.py \
             --ps_hosts=node1:2222 \
-            --worker_hosts=node2:2222,node3:2222
+            --worker_hosts=node2:2222,node3:2222 \
             --num_workers=2 \
             --job_name=worker \
             --task_index=0 \
             > output-first-worker.txt &
 
-mrun -n 1 -N 1 --cpus-per-task=36 --shared --nodelist=node3 \
+mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node3 \
       python linear-classifier-parallel.py \
             --ps_hosts=node1:2222 \
-            --worker_hosts=node2:2222,node3:2222
+            --worker_hosts=node2:2222,node3:2222 \
+            --num_workers=2 \
+            --job_name=worker \
+            --task_index=0 \
+            > output-second-worker.txt &
+```
+The `-n 1` and `-N 1` flags indicate the number of jobs to be started and the number of nodes to be used. `--cpus-per-task` sets the number of CPUs to be used on that node  
+
+In this example we allocate 36 CPUs to each parallel job. TensorFlow automatically detects all the CPUs available on the same node 
+However, we found that in practice the stochastic gradient descent algorithms implemented in TensorFlow for linear and logistic regression only use one or two CPUs 
+
+```shell-script
+mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
+      python linear-classifier-parallel.py \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node1:2223,node1:2224 \
+            --num_workers=2 \
+            --job_name=ps \
+            --task_index=0 \
+            > output-parameter-server.txt &
+
+mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
+      python linear-classifier-parallel.py \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node1:2223,node1:2224 \
+            --num_workers=2 \
+            --job_name=worker \
+            --task_index=0 \
+            > output-first-worker.txt &
+
+mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
+      python linear-classifier-parallel.py \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node1:2223,node1:2224 \
             --num_workers=2 \
             --job_name=worker \
             --task_index=0 \
@@ -213,7 +253,7 @@ mrun -n 1 -N 1 --cpus-per-task=36 --shared --nodelist=node3 \
 The `linear-classifier-parallel.py` file will be a Python script containing:
 * a parser, to process the input options such as the job name, task index, etc. 
 * a `main` function, in which the TensorFlow cluster is set up and different tasks are assigned to the parameter servers and workers
-* the code presented in the "Logistic regression with TensorFlow" section. The only difference is that, if more than one worker is set up, you need to make sure that each worker loads a different batch of data. To this end, you can use the 
+* the code presented in the "Logistic regression with TensorFlow" section. The only difference is that, if more than one worker is set up, you need to make sure that each worker loads a different batch of data. To this end, you can use the `dataset.shard()` method as explained below. 
 
 For the parser...
 ```python
@@ -236,6 +276,7 @@ if __name__ == "__main__":
       tf.logging.set_verbosity(tf.logging.WARN)
       tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
 ```
+Notice that the parser can also be used to provide other optional inputs to the main function, such as the L1 and L2 regularisation strength or the batch size. 
 
 The `main` function...
 ```python
@@ -263,7 +304,7 @@ def main(_):
             
                   if FLAGS.task_index==0:
                         # Print output with only one worker
-            
+                        
 ```
 
 Modified input function...
@@ -283,6 +324,9 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       dataset = dataset.batch(batch_size)
       return dataset
 ```
+The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
-# Pros and cons of using TensorFlow
+# Pros and cons of using TensorFlow for linear and logistic regression
+
+
 
