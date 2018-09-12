@@ -174,127 +174,115 @@ def get_flat_weights(model):
    return weight_names, weights_flat
 ```
 # How to parallelise TensorFlow code
-
 The guidelines given here to run the above code in a distributed setting are specific to the Urika-GX platform. However, they can be easily be generalised to any other platform by replacing the commands to start a job and the node names as needed.
 
+## Setting up the cluster
 From the TensorFlow website: *A TensorFlow "cluster" is a set of "tasks" that participate in the distributed execution of a TensorFlow graph. Each task is associated with a TensorFlow "server", which contains a "master" that can be used to create sessions, and a "worker" that executes operations in the graph. A cluster can also be divided into one or more "jobs", where each job contains one or more tasks.*
 
-Therefore, in order to run TensorFlow in parallel, you will need to define a set of workers and one or more parameter servers. With the Urika-GX platform, each worker or parameter server can be set up through `mrun`
-
+Therefore, in order to run TensorFlow in parallel, you will need to define a set of workers and one or more parameter servers. With the Urika-GX platform, each worker or parameter server can be set up through `mrun`. Here is the bash script needed to run one parameter server and two workers on three different nodes (indicated by `node1`, `node2`, `node3`):
 ```shell-script
-mrun -n 1 -N 1 --cpus-per-task=36 --nodelist="$1" \
+mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node1 \
       python linear-classifier-parallel.py \
             --ps_hosts=node1:2222 \
-            --worker_hosts=node2:2222,node3:2223 \
+            --worker_hosts=node2:2222,node3:2222 \
             --num_workers=2 \
             --job_name=ps \
             --task_index=0 \
             > output-parameter-server.txt &
 
-mrun -n 1 -N 1 --cpus-per-task=6 --shared --nodelist="$2" \
+mrun -n 1 -N 1 --cpus-per-task=36 --shared --nodelist=node2 \
       python linear-classifier-parallel.py \
-            --ps_hosts="$1":2222 \
-            --worker_hosts="$2":2222,"$2":2223
-            --num_workers=6 \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node2:2222,node3:2222
+            --num_workers=2 \
             --job_name=worker \
-            --task_index=$worker \
-            >> output-linear-classifier-manyWorkers-workers.txt &
-done
+            --task_index=0 \
+            > output-first-worker.txt &
+
+mrun -n 1 -N 1 --cpus-per-task=36 --shared --nodelist=node3 \
+      python linear-classifier-parallel.py \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node2:2222,node3:2222
+            --num_workers=2 \
+            --job_name=worker \
+            --task_index=0 \
+            > output-second-worker.txt &
 ```
-<!---
+
+## Split up the tasks between the parameter servers and the workers
+The `linear-classifier-parallel.py` file will be a Python script containing:
+* a parser, to process the input options such as the job name, task index, etc. 
+* a `main` function, in which the TensorFlow cluster is set up and different tasks are assigned to the parameter servers and workers
+* the code presented in the "Logistic regression with TensorFlow" section. The only difference is that, if more than one worker is set up, you need to make sure that each worker loads a different batch of data. To this end, you can use the 
+
+For the parser...
+```python
+import argparse
+import sys
+FLAGS = None
+
+if __name__ == "__main__":
+      parser = argparse.ArgumentParser()
+      parser.register("type", "bool", lambda v: v.lower() == "true")
+      parser.add_argument("--ps_hosts", type=str, default="", help="Comma-separated list of hostname:port pairs")
+      parser.add_argument("--worker_hosts", type=str, default="", help="Comma-separated list of hostname:port pairs")
+      parser.add_argument("--num_workers", type=int, default=1, help="Total number of workers")
+      parser.add_argument("--job_name", type=str, default="", help="One of 'ps', 'worker'")
+      parser.add_argument("--task_index", type=int, default=0, help="Index of task within the job")
+      parser.add_argument("--l1", type=float, default=0.0, help="L1 regularisation strength")
+      parser.add_argument("--l2", type=float, default=0.0, help="L2 regularisation strength")
+      parser.add_argument("--batch_size", type=int, default=500, help="Batch size")
+      FLAGS, unparsed = parser.parse_known_args()
+      tf.logging.set_verbosity(tf.logging.WARN)
+      tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
+```
+
+The `main` function...
+```python
 def main(_):
-    ps_hosts = FLAGS.ps_hosts.split(",")
-    worker_hosts = FLAGS.worker_hosts.split(",")
+      ps_hosts = FLAGS.ps_hosts.split(",")
+      worker_hosts = FLAGS.worker_hosts.split(",")
 
-  # Create a cluster from the parameter server and worker hosts.
-    cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
+      # Create a cluster from the parameter server and worker hosts.
+      cluster = tf.train.ClusterSpec({"ps": ps_hosts, "worker": worker_hosts})
 
-  # Create and start a server for the local task.
-    server = tf.train.Server(cluster,
+      # Create and start a server for the local task.
+      server = tf.train.Server(cluster,
                            job_name=FLAGS.job_name,
                            task_index=FLAGS.task_index)
+      
+      # Split up the tasks between the parameter servers and the workers
+      if FLAGS.job_name == "ps":
+            server.join()
+      elif FLAGS.job_name == "worker":
+            with tf.device(tf.train.replica_device_setter(
+                  worker_device="/job:worker/task:%d" % FLAGS.task_index,
+                  cluster=cluster)):
+                  # Training and prediction go here
+                  # ...
+            
+                  if FLAGS.task_index==0:
+                        # Print output with only one worker
+            
+```
 
-    if FLAGS.job_name == "ps":
-        server.join()
-    elif FLAGS.job_name == "worker":
-        with tf.device(tf.train.replica_device_setter(
-            worker_device="/job:worker/task:%d" % FLAGS.task_index,
-            cluster=cluster)):
-
-            train_file = "2000.csv"
-            predict_file = "2000.csv"
-
-            ds = input_fn(train_file, num_epochs=5, shuffle=True, batch_size=10)
-
-            year = fc.categorical_column_with_vocabulary_list('Year',
-                ['1987', '1988', '1989', '1990',
-                '1991', '1992', '1993', '1994', '1995', '1996', '1997', '1998', '1999', '2000',
-                '2001', '2002', '2003', '2004', '2005', '2006', '2007', '2008'])
-            month = fc.categorical_column_with_vocabulary_list('Month',
-                ['1','2','3','4','5','6','7','8','9','10','11','12'])
-            dayofmonth = fc.categorical_column_with_vocabulary_list('DayofMonth',
-                ['1','2','3','4','5','6','7','8','9',
-                '10','11','12','13','14','15','16','17','18','19',
-                '20', '21', '22', '23', '24', '25', '26', '27', '28', '29',
-                '30', '31'])
-            dayofweek = fc.categorical_column_with_vocabulary_list('DayOfWeek',
-                ['1','2','3','4','5','6','7'])
-            deptime = fc.numeric_column('DepTime')
-            arrtime = fc.numeric_column('ArrTime')
-            uniquecarrier = fc.categorical_column_with_hash_bucket('UniqueCarrier',
-                hash_bucket_size=1000)
-            flightnum = fc.categorical_column_with_hash_bucket('FlightNum',
-                hash_bucket_size=10000)
-            arrdelay = fc.numeric_column('ArrDelay')
-            depdelay = fc.numeric_column('DepDelay')
-            origin = fc.categorical_column_with_hash_bucket('Origin',
-                hash_bucket_size=1000)
-            dest = fc.categorical_column_with_hash_bucket('Dest',
-                hash_bucket_size=1000)
-            distance = fc.numeric_column('Distance')
-            cancelled = fc.categorical_column_with_vocabulary_list('Cancelled',['0','1'])
-            diverted = fc.categorical_column_with_vocabulary_list('Diverted', ['0','1'])
-
-            my_numeric_columns = [deptime, arrtime, depdelay, distance]
-            my_categorical_columns = [year, month, dayofmonth, dayofweek, uniquecarrier,
-                flightnum, origin, dest, cancelled, diverted]
-
-            classifier = tf.estimator.LinearClassifier(
-                feature_columns=my_numeric_columns+my_categorical_columns)
-            classifier = tf.contrib.estimator.add_metrics(classifier, metric_auc)
-
-            train_inpf = functools.partial(input_fn, train_file,
-                                   num_epochs=1, shuffle=True, batch_size=100)
-            test_inpf = functools.partial(input_fn, predict_file,
-                                   num_epochs=1, shuffle=False, batch_size=100)
-            predict_inpf = functools.partial(input_fn, predict_file,
-                                   num_epochs=1, shuffle=False, batch_size=100)
-
-            t0 = time()
-            classifier.train(train_inpf)
-            t1 = time()
-
-            result = classifier.evaluate(test_inpf)
-
-            for key,value in sorted(result.items()):
-                print('%s: %s' % (key, value))
-
-            if FLAGS.task_index==0:
-                weight_names, weight_est = get_flat_weights(classifier)
-                for name in weight_names:
-                    print(name)
-                    np.set_printoptions(threshold=10000)
-                    print(weight_est)
-                    np.savetxt("coefficients.csv", weight_est, delimiter=",")
-
-            pred_results = classifier.predict(input_fn=predict_inpf)
-            if FLAGS.task_index==0:
-                for i in range(10):
-                    print(next(pred_results))
-                average_loss=eval_result["average_loss"]   
-                with open("timings.csv", "a") as myfile:
-                    myfile.write("\n Task index %d, Time %f, RMSE %f" % (FLAGS.task_index, t1-t0, average_loss**0.5))
---> 
+Modified input function...
+```python
+def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
+      # Create list of file names that match "glob" pattern (i.e. data_file_*.csv)
+      filenames_dataset = tf.data.Dataset.list_files(data_file)
+      # Read lines from text files
+      textlines_dataset = filenames_dataset.flat_map(tf.data.TextLineDataset)
+      # Parse text lines as comma-separated values (CSV)
+      dataset = textlines_dataset.map(parse_csv)
+      dataset = dataset.shard(FLAGS.num_workers, FLAGS.task_index)
+      if shuffle:
+          dataset = dataset.shuffle(buffer_size=buffer_size)
+      # We call repeat after shuffling, rather than before, to prevent separate epochs from blending together.
+      dataset = dataset.repeat(num_epochs)
+      dataset = dataset.batch(batch_size)
+      return dataset
+```
 
 # Pros and cons of using TensorFlow
 
