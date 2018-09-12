@@ -232,7 +232,7 @@ print(type(testSummary))
 
 ```
 
-The model coefficients can be retrieved but it's just given as a list of numbers. To map the coefficients back to the original features they correspond to is a bit fiddly but doable below, and again printed to a csv file.
+The model coefficients can be retrieved but it's just given as a list of numbers. To map the coefficients back to the original features they correspond to is a little fiddly but basically the coefficients are still given in the correct order, just without the column names. So you can match the coefficients with the names by retrieving the original feature column names in the correct order from the dataset and simply stacking the column of coefficients next to it to form an numpy array with (coefficient, name) pairs. The coefficients (with names) are again printed to a csv file.
 
 ```python
 
