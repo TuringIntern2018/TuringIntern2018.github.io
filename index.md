@@ -105,6 +105,7 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
           dataset = dataset.shuffle(buffer_size=buffer_size)
       # We call repeat after shuffling, rather than before, to prevent separate epochs from blending together.
       dataset = dataset.repeat(num_epochs)
+      # Get a batch of data of size bathc_size
       dataset = dataset.batch(batch_size)
       return dataset
 ```
@@ -215,8 +216,8 @@ mrun -n 1 -N 1 --cpus-per-task=36 --nodelist=node3 \
             --task_index=1 \
             > output-second-worker.txt &
 ```
-On Urika-GX, the `-n 1` and `-N 1` flags indicate the number of jobs to be started and the number of nodes to be used. `--cpus-per-task` sets the number of CPUs to be used for each job and `--nodelist` is used to specify the name of the node on which the job will run. Here, for simplicity, we assume to have three nodes named `node1`, `node2`, and `node3`.
-The rest of the script can be used on any platform. 
+On Urika-GX, each job must be launched by `mrun`. The `-n 1` and `-N 1` flags indicate the number of jobs to be started and the number of nodes to be used. `--cpus-per-task` sets the number of CPUs to be used for each job and `--nodelist` is used to specify the name of the node on which the job will run. Here, for simplicity, we assume to have three nodes named `node1`, `node2`, and `node3`.
+The rest of the script can be used on any platform, as it is simply calling the Python script . 
 
 In this example we allocate 36 CPUs to each parallel job. TensorFlow automatically detects all the CPUs available on the same node and decides which part of the job to allocate to each one. 
 However, we found that in practice the stochastic gradient descent algorithms implemented in TensorFlow for linear and logistic regression only use one or two CPUs. Therefore, it is more efficient to run multiple jobs on the same node, by assigning multiple jobs to the same node, with different ports. Here we give a simple example with one parameter server and two workers, all running on node one. 
@@ -318,17 +319,30 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
       textlines_dataset = filenames_dataset.flat_map(tf.data.TextLineDataset)
       # Parse text lines as comma-separated values (CSV)
       dataset = textlines_dataset.map(parse_csv)
+      # Assign different batches to each worker
       dataset = dataset.shard(FLAGS.num_workers, FLAGS.task_index)
       if shuffle:
           dataset = dataset.shuffle(buffer_size=buffer_size)
       # We call repeat after shuffling, rather than before, to prevent separate epochs from blending together.
       dataset = dataset.repeat(num_epochs)
+      # Get a batch of data of size bathc_size
       dataset = dataset.batch(batch_size)
       return dataset
 ```
 The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
 # Pros and cons of using TensorFlow for linear and logistic regression
+
+* Linear and logistic regression already implemented as Estimators.
+* Main functions such as training, testing, etc. ready to use.
+* Many variants of SGD available.
+* No need to load data in memory: Easy to load batches of data from file.
+* Same sequential code can be used on any set of devices including CPUs, GPUs, TPUs. 
+
+* Lacks some basic functionalities, such as retrieving regression coefficients and normalising data.
+* Computation time explodes for increasing values of p. 
+* Not very performant on CPUs: Need to start multiple jobs on the same node to exploit computational power.
+* Each parameter server and cluster must be started separately and lengthy cluster settings must be specified each time.
 
 
 
