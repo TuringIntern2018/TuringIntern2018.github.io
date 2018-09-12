@@ -183,29 +183,24 @@ Therefore, in order to run TensorFlow in parallel, you will need to define a set
 
 ```shell-script
 mrun -n 1 -N 1 --cpus-per-task=36 --nodelist="$1" \
-    python linear-classifier-parallel.py \
-        --ps_hosts="$1":2222 \
-        --worker_hosts="$2":2222,"$2":2223,"$2":2224,"$2":2225,"$2":2226,"$2":2227 \ #,"$3":2224,"$3":2225,"$4":2222,"$4":2223,"$4":2224,"$4":2225 \
-        --num_workers=6 \
-        --job_name=ps \
-        --task_index=0 \
-        > output-linear-classifier-manyWorkers-ps.txt &
+      python linear-classifier-parallel.py \
+            --ps_hosts=node1:2222 \
+            --worker_hosts=node2:2222,node3:2223 \
+            --num_workers=2 \
+            --job_name=ps \
+            --task_index=0 \
+            > output-parameter-server.txt &
 
-for i in 0 1 2 3 4 5; # 6 7 8 9 10 11;
-do
-    mrun -n 1 -N 1 --cpus-per-task=6 --shared --nodelist="$2" \
-        python linear-classifier-parallel.py \
+mrun -n 1 -N 1 --cpus-per-task=6 --shared --nodelist="$2" \
+      python linear-classifier-parallel.py \
             --ps_hosts="$1":2222 \
-            --worker_hosts="$2":2222,"$2":2223,"$2":2224,"$2":2225, "$2":2226, "$2":2227 \ #,"$2":2226,"$2":2227 \ #,"$2":2228,"$2":2229,"$2":2230,"$2":2231,"$2":2232,"$2":2233 \
+            --worker_hosts="$2":2222,"$2":2223
             --num_workers=6 \
             --job_name=worker \
             --task_index=$worker \
             >> output-linear-classifier-manyWorkers-workers.txt &
 done
 ```
-
-
-
 <!---
 def main(_):
     ps_hosts = FLAGS.ps_hosts.split(",")
