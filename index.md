@@ -1,5 +1,3 @@
-*(Introduction common to both...)*
-
 # Airline data
 
 In the following, we analyse the airline dataset, publicly available for download from http://stat-computing.org/dataexpo/2009/. The data contains records of all commericial flights within the USA,  from October 1987 to April 2008. It can be downloaded as 22 separate csv files, each containing the data for one year. When unzipped, the files take up 12 GB. 
