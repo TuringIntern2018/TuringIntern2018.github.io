@@ -10,7 +10,7 @@ Using this information, we want to see if it is possible to predict whether a fl
 
 <!--- (There are also other variables that we do not take into consideration, since they cannot used to predict delays:  `CRSDepTime` and `CRSArrTime` the scheduled arrival and departure local times in the hhmm format, `AirTime` in minutes, `TaxiIn` taxi in time, in minutes, `TaxiOut` taxi out time in minutes, `Cancelled` was the flight cancelled?, `CancellationCode`	reason for cancellation (A = carrier, B = weather, C = NAS, D = security), `Diverted` 1 = yes, 0 = no, `CarrierDelay` in minutes, `WeatherDelay` in minutes, `NASDelay`	in minutes, `SecurityDelay` in minutes, `LateAircraftDelay` in minutes.) -->
 
-# Logistic regression with TensorFlow
+# Logistic and linear regression with TensorFlow
 
 We make use of Estimators, a high-level TensorFlow API that includes implementations of the most popular machine learning algorithms. Here, in order to perform linear regression, we use the LinearClassifier estimator. You can learn more about Estimators on the TensorFlow official website: https://www.tensorflow.org/guide/estimators.
 
@@ -174,9 +174,10 @@ def get_flat_weights(model):
 ```
 The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
-# Linear regression with TensorFlow
+## Linear regression
 
-Same but with LinearRegressor Estimator and without binarising the 'ArrDelay' variable. 
+If instead we wanted to predict exactly the flight delays in minutes, we could have done exactly the same as above, replacing `LinearClassifier` with `LinearRegressor` and not binarising the `ArrDelay` variable in the input function.
+
 The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
 # How to parallelise TensorFlow code
@@ -248,7 +249,6 @@ mrun -n 1 -N 1 --cpus-per-task=5 --shared --nodelist=node1 \
             --task_index=0 \
             > output-second-worker.txt &
 ```
-
 
 ## Split up the tasks between the parameter servers and the workers
 The `linear-classifier-parallel.py` file will be a Python script containing:
@@ -329,9 +329,9 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
 ```
 The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
-# Pros and cons of using TensorFlow for linear and logistic regression
+# TensorFlow for statisticians
 
-More and more statisticians nowadays have huge, rich datasets available which unfortunately are too large to be analysed with classical tools for statistical analysis such as R. In these cases, machine learning tools can come in handy, since they are specifically developed for large datasets. One of the most popular machine learning libraries at the moment is TensorFlow, developed and maintained by Google which has recently become open source. In the what follows, we explain a few things that we think any statistician should know before starting to use TensorFlow for two of the most used statistical techniques: linear and logistic regression.
+More and more statisticians nowadays have huge, rich datasets available which unfortunately are too large to be analysed with classical tools for statistical analysis such as R. In these cases, machine learning tools can come in handy, since they are specifically developed for large datasets. One of the most popular machine learning libraries at the moment is TensorFlow, developed and maintained by Google which has recently become open source. It is written in C++ and Python and has several different APIs. In the what follows, we explain a few things that we think any statistician should know before starting to use TensorFlow for two of the most used statistical techniques: linear and logistic regression.
 
 The great thing about using TensorFlow for linear and logistic regression is that both algorithms are implemented in the high-level Estimators API under the names of LinearRegressor and LinearClassifier respectively. Estimators are wrappers that contain everything that is needed in order to instantiate a machine learning model, and to train it and evaluate it on any type of device (or set of devices): CPUs, GPUs, and also the Tensor Processing Units (TPUs) recently developed by Google and tailored for TensorFlow. 
 Therefore, instantiating and training such models is very easy: the code needed to create a model and train it on the data fits in just two lines! On top of that, for each Estimator the user can specify a set of parameters to choose the optimisation algorithm and the strength of the L1 and L2 penalties.  Indeed, TensorFlow is equipped with a broad range of optimisers. These are different variants of the stochastic gradient descent algorithm, including some new ones  recently proposed by researchers at Google in order to cope with datasets with very large number of covariates. 
@@ -340,11 +340,8 @@ Another great feature of TensorFlow is that it doesn’t require to load the ful
 On the other hand, we found that Estimators lack some basic functionalities that a statistician would expect. For instance, while metrics such as the precision and recall of the Estimators are automatically computed in the evaluation step, retrieving the coefficients (or weights, as they are called in the machine learning community) of each covariate is not straightforward. For categorical covariates, for example, there exists a method that allows the user to get a list of coefficients, but this does not include any indication about the category to which each coefficient corresponds. This can be an issue when the model includes covariates with a large number of categories (in the airplane data example in the ‘Logistic regression with TensorFlow’ section, these are the carrier name, origin and destination airports, and flight number). Similarly, normalising the data before the training step can be tricky, especially if the design matrix contains a mix of numeric and categorical covariates. 
 Moreover, when running on CPUs, regression models than can be fitted in just a few minutes with other machine learning libraries (such as Apache Spark) can take much longer with TensorFlow. 
 In addition to that, even though some of the SGD algorithms available in TensorFlow have been specifically developed for datasets with up to a few billion covariates, the time required to run linear and logistic regression with TensorFlow on one or more CPUs quickly explodes for increasing values of p. 
-Even with a large number of CPUs on the same machine, it is easy to observe that TensorFlow makes use only a few of them to train Estimators. This is because [complete here]
-Using distributed TensorFlow can help, but does not entirely solves the problem. Indeed, when splitting the computations between multiple workers, each worker is responsible for loading a different batch of data and asynchronously updating the model parameters, that are stored on a separate parameter server. Therefore, when using n workers, the time needed to train a LinearRegressor or LinearClassifier is roughly divided by n. Unfortunately the procedure to start a large number of workers is quite cumbersome, and starting more than 10 workers is not very convenient (for details, see the ‘How to parallelise TensorFlow code’ section). 
+Even with a large number of CPUs on the same machine, it is easy to observe that TensorFlow makes use only a few of them to train Estimators. Using distributed TensorFlow can help, but does not entirely solves the problem. Indeed, when splitting the computations between multiple workers, each worker is responsible for loading a different batch of data and asynchronously updating the model parameters, that are stored on a separate parameter server. Therefore, when using n workers, the time needed to train a LinearRegressor or LinearClassifier is roughly divided by n. Unfortunately the procedure to start a large number of workers is quite cumbersome, and starting more than 10 workers is not very convenient (for details, see the ‘How to parallelise TensorFlow code’ section). 
 
 Finally, it is worthwhile to mention that TensorFlow is in continuous evolution. This means that the features that are not available now, may be implemented very soon. At the same time, most classes and methods are rapidly  
 
-To conclude, before starting to use TensorFlow, we recommend weighing the pros and cons and consider what are the main [something]: is it speed? ease of use? portability? Many factors that should be taken into consideration: programming abilities, computing resources available, desired metrics and output of the analysis, etc. Depending on those, it may or may not be useful to use TensorFlow.
-
-
+To conclude, before starting to use TensorFlow, we recommend weighing the pros and cons of using TensorFlow and consider what are the main concerns: speed? ease of use? portability? Finally, many other factors should be taken into consideration: programming abilities, computing resources available, desired metrics and output of the analysis, etc. Depending on those, it may or may not be useful to use TensorFlow.
