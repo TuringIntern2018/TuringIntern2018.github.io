@@ -18,7 +18,7 @@ Instantiating and training a LinearClassifier is very simple. Assuming to have d
 import tensorflow as tf
 classifier = tf.estimator.LinearClassifier(feature_columns=my_numeric_columns+my_categorical_columns)
 ```
-For the airline data, the columns can be defined as:
+For example, for the airline data, the columns can be defined as:
 ```python
 import tensorflow.feature_column as fc
 
