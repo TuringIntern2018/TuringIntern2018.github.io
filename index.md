@@ -344,5 +344,5 @@ The full code can be found at http://acabassi.github.com/linear-regression-tenso
 * Not very performant on CPUs: Need to start multiple jobs on the same node to exploit computational power.
 * Each parameter server and cluster must be started separately and lengthy cluster settings must be specified each time.
 * Must be compiled from source.
-
+* Ever changing settings. 
 
