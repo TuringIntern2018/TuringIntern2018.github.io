@@ -44,7 +44,7 @@ time.sleep(10)
 print('wait over')
 ```
 
-##Data Processing
+## Data Processing
 
 Here we read in the Airlines dataset, which is split by year between 1987 and 2008. First we read in the data from 1987, then iteratively append the data from each new year to our 1987 data until we reach 2008. A new column called 'Delay' is defined which is a binary variable that returns 1 if the flight was delayed and 0 otherwise.
 
@@ -66,7 +66,7 @@ print('start')
 data1987=data1987.withColumn("Delay", when(data1987["ArrDelay"] > 0, 1).otherwise(0))
 ```
 
-##Feature Engineering
+## Feature Engineering
 
 Next we do some feature engineering. Here we treat 'Distance', and 'Year' as numerical variables, and we introduce higher polynomial terms of both into the data after standardising both columns, up to 3rd and 6th power for both respectively. It might be strange to treat 'Year' as a numerical variable rather than categorical but sometimes it's desirable to predict delays in future years based on data in previous years which would not be possible to do if 'Year' was a categorical variable. Furthermore, we add sine and cosine of the CRSDepTime and CRSArrTime (expected depart and arrival times) columns with period 2400 to reflect the periodic nature of time. In a sense this is a first order Fourier series regression of both columns, somewhat similar to how linear regression is a 'first order polynomial regression'
 
@@ -184,7 +184,7 @@ logistictestdata, logistictrainingdata = logisticdata2.randomSplit(weights=[0.15
 
 ```
 
-##Model Fitting
+## Model Fitting
 
 The actual fitting of the logistic regression model is relatively straightforward. Key parameters to keep in mind are the regularisation parameters. 'elasticNetParam' controls the type of parameterisation, which when at 0 and 1 denotes ridge regression and LASSO regression respectively (latter of which we chose here) and everything between a linear combination of both. 'regParam' controls the degree of parametrisation. Here we also time how long the regression takes to train. 
 
@@ -208,7 +208,7 @@ print(timetaken)
 
 ```
 
-##Model Predictions
+## Model Predictions
 
 After training the model, we would like to make some predictions and evaluate the model on the test set. This is relatively straightforward to do and we can write the resulting precision and recall of the model predictions to a csv file, which can be easily used to plot a precision-recall graph in Python or R for instance. 
 
@@ -240,7 +240,7 @@ print(type(testSummary))
 
 ```
 
-##Model Coefficients
+## Model Coefficients
 
 The model coefficients can be retrieved but it's just given as a list of numbers. To map the coefficients back to the original features they correspond to is a little fiddly but basically the coefficients are still given in the correct order, just without the column names. So you can match the coefficients with the names by retrieving the original feature column names in the correct order from the dataset and simply stacking the column of coefficients next to it to form an numpy array with (coefficient, name) pairs. The coefficients (with names) are again printed to a csv file.
 
