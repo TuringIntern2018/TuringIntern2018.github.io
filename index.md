@@ -37,8 +37,6 @@ depdelay = fc.numeric_column('DepDelay')
 origin = fc.categorical_column_with_hash_bucket('Origin', hash_bucket_size=1000)
 dest = fc.categorical_column_with_hash_bucket('Dest', hash_bucket_size=1000)
 distance = fc.numeric_column('Distance')
-cancelled = fc.categorical_column_with_vocabulary_list('Cancelled',['0','1'])
-diverted = fc.categorical_column_with_vocabulary_list('Diverted', ['0','1'])
 ```
 Note that we have used three types of columns: `fc.numeric_colimn`, for continuous variables, `fc.categorical_column_with_vocabulary_list` for categorical variables for which all the classes are known and can be easily enumerated, `fc.categorical_column_with_hash_bucket` for categorical variables with a high number of classes (such as `FlightNum`). The parameter `hash_bucket_size` is an upper bound on the number of categories. More information about the different types of feature columns available for TensorFlow estimators can be found at https://www.tensorflow.org/guide/feature_columns.
 
