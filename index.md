@@ -268,6 +268,21 @@ matchcoefsdf.to_csv('Airplanecoefspd1.csv')
 
 ```
 
+To summarise the notable findings on coefficient analysis:
+
+Months most likely to contain delays are: December, January, June, July. September and May least likely
+
+Friday, Thursday are more likely to contain delays. Saturday and Sunday least likely.
+
+Flights originating from Atlanta International Airport, Detroit Metro Airport, Chicago O'Hare International Airport are most likely to cause delays. Palmdale Regional Airport and Lihue Airport least likely.
+
+Flights arriving at Newark Liberty International Airport, Seattle–Tacoma International Airport, Atlanta International Airport are most likely to cause delays. Guam International Airport and Palmdale Regional Airport.
+
+Delays most likely between 15:00-20:00, least likely between 4:00-9:00
+
+Delays are less likely to happen in recent years, and more likely to happen the longer the flight.
+
+
 ## Other models
 
 Since the actual model training part is fairly straightforward to use, everything up to and including the Feature Engineering section can be easily reused for other models in Spark. For example, below we illustrate how to run a random forest model on the same data.
@@ -325,7 +340,7 @@ print("RandomForestClassifier: accuracy,precision,recall",accuracy,precision,rec
 
 However, the choice of classification models on Spark is still relatively more limited compared to more commonly used programming languages by Data Scientists such as R and Python. For example the SVM implementation in Spark does not provide nonlinear kernels, and Multilayer perceptron classifier is the only neural network algorithm available.
 
-## Notable results
+## Benchmarks
 
 Here are some sample run times for the Airline data analysis:
 
@@ -335,3 +350,4 @@ Here are some sample run times for the Airline data analysis:
 | Logistic Regression | Local             | 36              | 1066.61           |
 | Random Forest       | Mesos             | 324             | 411.20            |
 | Random Forest       | Local             | 36              | 3057.40           |
+
