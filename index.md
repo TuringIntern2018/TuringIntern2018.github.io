@@ -333,16 +333,20 @@ The full code can be found at http://acabassi.github.com/linear-regression-tenso
 
 # Pros and cons of using TensorFlow for linear and logistic regression
 
-* Linear and logistic regression already implemented as Estimators.
-* Main functions such as training, testing, etc. ready to use.
-* Many variants of SGD available.
-* No need to load data in memory: Easy to load batches of data from file.
-* Same sequential code can be used on any set of devices including CPUs, GPUs, TPUs. 
+More and more statisticians nowadays have huge, rich datasets available which unfortunately are too large to be analysed with classical tools for statistical analysis such as R. In these cases, machine learning tools can come in handy, since they are specifically developed for large datasets. One of the most popular machine learning libraries at the moment is TensorFlow, developed and maintained by Google which has recently become open source. In the what follows, we explain a few things that we think any statistician should know before starting to use TensorFlow for two of the most used statistical techniques: linear and logistic regression.
 
-* Lacks some basic functionalities, such as retrieving regression coefficients and normalising data.
-* Computation time explodes for increasing values of p. 
-* Not very performant on CPUs: Need to start multiple jobs on the same node to exploit computational power.
-* Each parameter server and cluster must be started separately and lengthy cluster settings must be specified each time.
-* Must be compiled from source.
-* Ever changing settings. 
+The great thing about using TensorFlow for linear and logistic regression is that both algorithms are implemented in the high-level Estimators API under the names of LinearRegressor and LinearClassifier respectively. Estimators are wrappers that contain everything that is needed in order to instantiate a machine learning model, and to train it and evaluate it on any type of device (or set of devices): CPUs, GPUs, and also the Tensor Processing Units (TPUs) recently developed by Google and tailored for TensorFlow. 
+Therefore, instantiating and training such models is very easy: the code needed to create a model and train it on the data fits in just two lines! On top of that, for each Estimator the user can specify a set of parameters to choose the optimisation algorithm and the strength of the L1 and L2 penalties.  Indeed, TensorFlow is equipped with a broad range of optimisers. These are different variants of the stochastic gradient descent algorithm, including some new ones  recently proposed by researchers at Google in order to cope with datasets with very large number of covariates. 
+Another great feature of TensorFlow is that it doesn’t require to load the full dataset in memory. At each iteration of the stochastic gradient descent, a batch of data is loaded into memory, used to upgrade the gradient and then discarded. In some cases, it can be useful to go through the data more than once, until the SGD algorithm has converged. The number of times that each batch is considered can specified by the user (and is referred to as the number of “epochs” in machine learning jargon.
+
+On the other hand, we found that Estimators lack some basic functionalities that a statistician would expect. For instance, while metrics such as the precision and recall of the Estimators are automatically computed in the evaluation step, retrieving the coefficients (or weights, as they are called in the machine learning community) of each covariate is not straightforward. For categorical covariates, for example, there exists a method that allows the user to get a list of coefficients, but this does not include any indication about the category to which each coefficient corresponds. This can be an issue when the model includes covariates with a large number of categories (in the airplane data example in the ‘Logistic regression with TensorFlow’ section, these are the carrier name, origin and destination airports, and flight number). Similarly, normalising the data before the training step can be tricky, especially if the design matrix contains a mix of numeric and categorical covariates. 
+Moreover, when running on CPUs, regression models than can be fitted in just a few minutes with other machine learning libraries (such as Apache Spark) can take much longer with TensorFlow. 
+In addition to that, even though some of the SGD algorithms available in TensorFlow have been specifically developed for datasets with up to a few billion covariates, the time required to run linear and logistic regression with TensorFlow on one or more CPUs quickly explodes for increasing values of p. 
+Even with a large number of CPUs on the same machine, it is easy to observe that TensorFlow makes use only a few of them to train Estimators. This is because [complete here]
+Using distributed TensorFlow can help, but does not entirely solves the problem. Indeed, when splitting the computations between multiple workers, each worker is responsible for loading a different batch of data and asynchronously updating the model parameters, that are stored on a separate parameter server. Therefore, when using n workers, the time needed to train a LinearRegressor or LinearClassifier is roughly divided by n. Unfortunately the procedure to start a large number of workers is quite cumbersome, and starting more than 10 workers is not very convenient (for details, see the ‘How to parallelise TensorFlow code’ section). 
+
+Finally, it is worthwhile to mention that TensorFlow is in continuous evolution. This means that the features that are not available now, may be implemented very soon. At the same time, most classes and methods are rapidly  
+
+To conclude, before starting to use TensorFlow, we recommend weighing the pros and cons and consider what are the main [something]: is it speed? ease of use? portability? Many factors that should be taken into consideration: programming abilities, computing resources available, desired metrics and output of the analysis, etc. Depending on those, it may or may not be useful to use TensorFlow.
+
 
