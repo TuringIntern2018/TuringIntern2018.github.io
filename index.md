@@ -268,4 +268,57 @@ matchcoefsdf.to_csv('Airplanecoefspd1.csv')
 
 ```
 
+## Other models
+
+Since the actual model training part is fairly straightforward to use, everything up to and including the Feature Engineering section can be easily reused for other models in Spark. For example, below we illustrate how to run a random forest model on the same data.
+
+```python
+
+# Random forest 
+
+from pyspark.ml.classification import RandomForestClassifier
+
+rf = RandomForestClassifier(labelCol="Delay", featuresCol="features", numTrees=100)
+
+start3 = time.time()
+
+rfmodel=rf.fit(logistictrainingdata)
+
+end3 = time.time()
+
+timetaken3=end3-start3
+print(timetaken3)
+
+print('done')
+
+```
+
+Spark's RandomForestClassifier unfortunately does not provide an automatic way to retrieve a spectrum of precision and recall values depending on the probability threshold of your prediction. However it's relatively straightforward to retrieve the precision and recall for the default threshold (>=50% probability predicts a Delay).
+
+```python
+
+predictions = rfmodel.transform(logistictestdata)
+
+predictions=predictions.select('Delay','rawPrediction','probability','prediction')
+
+print('start')
+print(predictions.take(50))
+print('done')
+
+from pyspark.mllib.evaluation import MulticlassMetrics
+
+predictions=predictions.withColumn("prediction", predictions["prediction"].cast(DoubleType()))
+
+predictions=predictions.withColumn("Delay", predictions["Delay"].cast(DoubleType()))
+
+results = predictions.select(['prediction', 'Delay'])
+predictionAndLabels=results.rdd
+metrics = MulticlassMetrics(predictionAndLabels)
+
+cm=metrics.confusionMatrix().toArray()
+accuracy=(cm[0][0]+cm[1][1])/cm.sum()
+precision=(cm[0][0])/(cm[0][0]+cm[1][0])
+recall=(cm[0][0])/(cm[0][0]+cm[0][1])
+print("RandomForestClassifier: accuracy,precision,recall",accuracy,precision,recall)
+
 ```
