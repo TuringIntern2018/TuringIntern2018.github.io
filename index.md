@@ -322,3 +322,7 @@ recall=(cm[0][0])/(cm[0][0]+cm[0][1])
 print("RandomForestClassifier: accuracy,precision,recall",accuracy,precision,recall)
 
 ```
+
+However, the choice of classification models on Spark is still relatively more limited compared to more commonly used programming languages by Data Scientists such as R and Python. For example the SVM implementation in Spark does not provide nonlinear kernels, and Multilayer perceptron classifier is the only neural network algorithm available.
+
+## Notable results
