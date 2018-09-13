@@ -325,7 +325,7 @@ def input_fn(data_file, num_epochs, shuffle, batch_size, buffer_size=1000):
           dataset = dataset.shuffle(buffer_size=buffer_size)
       # We call repeat after shuffling, rather than before, to prevent separate epochs from blending together.
       dataset = dataset.repeat(num_epochs)
-      # Get a batch of data of size bathc_size
+      # Get a batch of data of size batch_size
       dataset = dataset.batch(batch_size)
       return dataset
 ```
