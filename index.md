@@ -178,13 +178,13 @@ def get_flat_weights(model):
    weights_flat = np.concatenate([item.flatten() for item in weight_values], axis=0)
    return weight_names, weights_flat
 ```
-The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
+The full code of this tutorial can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
 ## Linear regression
 
 If instead we wanted to predict exactly the flight delays in minutes, we could have done exactly the same as above, replacing `LinearClassifier` with `LinearRegressor` and not binarising the `ArrDelay` variable in the input function.
 
-The full code can be found at http://acabassi.github.com/linear-regression-tensorflow/...
+The full code to perform linear regression on the airline data the can be found at http://acabassi.github.com/linear-regression-tensorflow/...
 
 # How to parallelise TensorFlow code
 The guidelines given here to run linear and logistic regression with TensorFlow in a distributed setting are specific to the Urika-GX platform. However, they can be easily be generalised to any other platform by replacing the commands to start a job and the node names as needed.
