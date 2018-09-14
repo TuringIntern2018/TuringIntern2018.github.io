@@ -150,6 +150,8 @@ For each column, we generate n independent samples from a normal distribution wi
 
 It's not simple to do matrix multiplication or dot product in a Spark dataframe, so the response variable is generated as follows: first we require coefficient values of the model we want to fit, which are generated via an uniform distribution U(-coefmag, coefmag) where again coefmag is a parameter defined by the user which controls how large the intercept is. Next, once we generate the data, we initialise another column called 'Y0' which is the intercept+coefs[0]*X0+noise, and iteratively add the contribution from the other columns e.g. Y5=Y4+coefs[5]*X5 until we reach the last column.
 
+The actual model fitting part is relatively straightforward. We time how long it takes for Spark to fit the linear regression and write 'results' which includes the benchmark time as well as parameters used in this run to a csv file. 
+
 ```python
 
 import time
@@ -181,7 +183,83 @@ f.close()
 
 ```
 
-The actual model fitting part is relatively straightforward. We time how long it takes for Spark to fit the linear regression and write 'results' which includes the benchmark time as well as parameters used in this run to a csv file. 
+
+## Large p, small n
+
+The code used for the large p, small n case differs significantly in the data generating process. Iteratively adding columns to a dataframe becomes quite costly when p gets to over about 1000 so it's not feasible to use the same method to generate a large p, small n dataset. So instead of iteratively adding columns we iteratively append rows to the dataset instead. To do this we generate a row in numpy first, turn it into an rdd via SparkContext.parallelize and append it to the existing dataset via SparkContext.union. An obvious weakness in this approach is that numpy isn't parallelised by Spark but Spark does not offer easy ways to append rows to a dataset due to the rdd data structure.
+
+```python
+
+from pyspark.sql.functions import rand, randn
+from pyspark.sql import Row
+
+
+n=args.n
+p=args.p #10m seems to be about the limit
+
+print([n,p])
+
+meanmag=10
+mean=meanmag*np.random.randn(p) #generate means of feature columns
+print('is numpy slow') #dont simulate from np.multivariate.normal, it's very slow. Instead simulate from randn and add the mean and np.multiply for diagonal covariance
+std=7
+stdvec=np.random.uniform(low=0.1, high=std, size=p) #generate std of feature columns
+coefmag=5 #maximum 'magnitude' of coefficients
+noisestd=3 #standard deviance of noise
+
+coef=coefmag*np.random.uniform(low=-1, high=1, size=p) #generate coefficients
+interceptcoef=coefmag*np.random.uniform(low=-1, high=1, size=1) #generate intercept coefficient
+
+print('print coefficients')
+#print(coef)
+#print(interceptcoef)
+
+features=mean+np.multiply(np.random.randn(p), stdvec)
+#generate p independent N(0,1) samples, multiply componentwise with the vector of standard deviance, and add the vector of means
+
+#print(features)
+
+response=interceptcoef+np.dot(coef, features)+noisestd*np.random.randn()
+#print(response)
+#print(features)
+
+row0=np.concatenate([response, features])
+
+
+rdd0 = sc.parallelize([row0.tolist()]) #the square brackets somehow convinces spark to initialise this array as a row rather than column
+#print(rdd0.collect())
+
+print('start')
+
+for i in range(n-1):
+    features=mean+np.multiply(np.random.randn(p), stdvec)
+    #print(features[0])
+    response=interceptcoef+np.dot(coef, features)+noisestd*np.random.randn()
+    #print(response)
+    row=np.concatenate([response, features])
+    #print(row)
+    #print(row.reshape(1, row.shape[0]))
+    rdd = sc.parallelize([row.tolist()])
+    #print(rdd.collect()) 
+    rdd0=sc.union([rdd0,rdd])
+    #row0=row
+
+#print('entire data')
+#print(rdd0.collect())
+
+
+# Define the `input_data` 
+input_data_gen = rdd0.map(lambda x: (x[0], DenseVector(x[1:])))
+#input_data_gen = rdd0.map(lambda x: x[1])
+
+
+#print(input_data_gen.collect())
+
+
+# Replace `df` with the new DataFrame
+dfgenY = spark.createDataFrame(input_data_gen, ["label", "features"])
+
+```
 
 # Notable results
 
@@ -199,7 +277,7 @@ Spark seems to run on large n, small p datasets more efficiently in terms of how
 
 ## Runtime vs number of cores used
 
-The inverse of runtime time seems to vary linearly as the number of cores increase, at least provided there's enough memory. The data used here was n=10^8, p=10, with 100gb memory per executor.
+The inverse of runtime time seems to vary linearly as the number of cores increase, at least provided there's enough memory. The data used here was n=10^8, p=10, with 100gb memory per executor, and the algorithm was linear regression with LASSO penalisation.
 
 ![alt text][logo]
 
@@ -211,5 +289,3 @@ The intercept here is 0.00238 and the slope 0.00004622
 
 [logo1]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/oneoveryplot.png
 
-
-## Large p, small n
