@@ -198,11 +198,11 @@ Spark seems to run on large n, small p datasets more efficiently in terms of how
 
 ![alt text][logo]
 
-[logo]: (https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/yplot.png)
+[logo]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/yplot.png
 
 ![alt text][logo1]
 
-[logo1]: (https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/oneoveryplot.png)
+[logo1]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/oneoveryplot.png
 
 
 ## Large p, small n
