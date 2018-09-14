@@ -186,7 +186,7 @@ f.close()
 
 ## Large p, small n
 
-The code used for the large p, small n case differs significantly in the data generating process. Iteratively adding columns to a dataframe becomes quite costly when p gets to over about 1000 so it's not feasible to use the same method to generate a large p, small n dataset. So instead of iteratively adding columns we iteratively append rows to the dataset instead. To do this we generate a row in numpy first, turn it into an rdd via SparkContext.parallelize and append it to the existing dataset via SparkContext.union. An obvious weakness in this approach is that numpy isn't parallelised by Spark but Spark does not offer easy ways to append rows to a dataset due to the rdd data structure.
+The code used for the large p, small n case differs significantly from the large n, small p case in the data generating process, but is similar in the other parts. Iteratively adding columns to a dataframe becomes quite slow when p gets to over about 1000 so it's not feasible to use the same method to generate a large p, small n dataset. So instead of iteratively adding columns we iteratively append rows to the dataset instead. To do this we generate a row in numpy first, turn it into an rdd via SparkContext.parallelize and append it to the existing dataset via SparkContext.union. An obvious weakness in this approach is that numpy isn't parallelised by Spark but Spark does not offer easy ways to append rows to a dataset due to the rdd data structure.
 
 ```python
 
