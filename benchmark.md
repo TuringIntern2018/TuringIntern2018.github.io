@@ -183,7 +183,9 @@ f.close()
 
 The actual model fitting part is relatively straightforward. We time how long it takes for Spark to fit the linear regression and write 'results' which includes the benchmark time as well as parameters used in this run to a csv file. 
 
-## Notable results
+# Notable results
+
+## Runtime vs data size
 
 | n     | p    | Runtime(s) |
 |-------|------|------------|
@@ -195,10 +197,15 @@ The actual model fitting part is relatively straightforward. We time how long it
 
 Spark seems to run on large n, small p datasets more efficiently in terms of how much computational time scales with runtime. This is likely because large p, small n datasets require penalisation (feature selection) over a much larger number of columns which slows the algorithm down.
 
+## Runtime vs number of cores used
+
+The inverse of runtime time seems to vary linearly as the number of cores increase, at least provided there's enough memory. The data used here was n=10^8, p=10, with 100gb memory per executor.
 
 ![alt text][logo]
 
 [logo]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/yplot.png
+
+The intercept here is 0.00238 and the slope 0.00004622
 
 ![alt text][logo1]
 
