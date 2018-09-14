@@ -183,8 +183,26 @@ f.close()
 
 The actual model fitting part is relatively straightforward. We time how long it takes for Spark to fit the linear regression and write 'results' which includes the benchmark time as well as parameters used in this run to a csv file. 
 
+## Notable results
+
+| n     | p    | Runtime(s) |
+|-------|------|------------|
+| 10^8  | 100  | 222.67     |
+| 10^9  | 100  | 1990.06    |
+| 10^10 | 100  | 32018.55   |
+| 100   | 10^5 | 2434.37    |
+| 100   | 10^6 | 3717.93    |
+
+Spark seems to run on large n, small p datasets more efficiently in terms of how much computational time scales with runtime. This is likely because large p, small n datasets require penalisation (feature selection) over a much larger number of columns which slows the algorithm down.
 
 
+![alt text][logo]
+
+[logo]: (yplot.png)
+
+![alt text][logo1]
+
+[logo1]: (oneoveryplot.png)
 
 
 ## Large p, small n
