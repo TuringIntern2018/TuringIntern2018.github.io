@@ -42,8 +42,148 @@ done
 
 ```
 
+We have 4 versions of (Linear Regression, Logistic Regression, Large n small p, Large p small n) of the Python file, but common to all of them, we start by importing modules, defining the Spark context and setting up argparse so the input parameters can be passed in correctly.
+
+```python
+
+import numpy as np
+import findspark
+findspark.init()
+import scipy as scipy
+from pyspark.sql import SparkSession
+from pyspark.sql import Row
+from pyspark.sql.types import *
+from pyspark.sql.functions import *
+from pyspark.ml.linalg import DenseVector
+from pyspark.ml.feature import StandardScaler
+from pyspark.ml.regression import LinearRegression
+from pyspark.mllib.regression import LinearRegressionWithSGD
+from pyspark.mllib.regression import LabeledPoint
+from pyspark.mllib.feature import StandardScaler
+from pyspark import SparkConf, SparkContext
+
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--coresmax', nargs='?', const=36000, type=int, default=36000)
+parser.add_argument('--executorcores', nargs='?', const=36, type=int, default=36)
+parser.add_argument('--drivermemory', nargs='?', const='96g', type=str, default='96g')
+parser.add_argument('--executormemory', nargs='?', const='96g', type=str, default='96g')
+parser.add_argument('--n', nargs='?', const=10000000000, type=int, default=10000000000)
+parser.add_argument('--p', nargs='?', const=100, type=int, default=100)
+parser.add_argument('--maxiter', nargs='?', const=100, type=int, default=100)
+parser.add_argument('--lamda', nargs='?', const=0, type=float, default=0)
+parser.add_argument('--alpha', nargs='?', const=0, type=float, default=0)
+args = parser.parse_args()
+print(args)
+
+spark = SparkSession.builder    .master("mesos://zk://zoo1:2181,zoo2:2181,zoo3:2181/mesos")    .appName("Linear Regression Model SGD")    .config("spark.cores.max", args.coresmax)    .config("spark.executor.cores", args.executorcores)    .config("spark.driver.memory.", args.drivermemory)    .config("spark.executor.memory", args.executormemory)    .getOrCreate() 
+
+sc = spark.sparkContext
+
+
+print(sc._conf.getAll()) #print settings to double check
+
+import time
+time.sleep(10)
+print('wait over')
+
+```
+
+Again if running Mesos we want to let Python wait for 10 seconds before running code on data because Mesos takes a few seconds to initialise.
 
 ## Large n, small p
+
+The basic idea is to initialise a dataframe with just the row label, and then generate columns of the desired dataframe iteratively via the select method in Spark, until we reach the number of columns we want. 
+
+```python
+
+from pyspark.sql.functions import rand, randn
+
+
+n=args.n
+p=args.p
+meanmag=10
+stdmag=7
+coefmag=5
+noisestd=3
+
+dfgen = spark.range(0, n) #initialise dataframe
+
+coefs=coefmag*np.random.uniform(low=-1, high=1, size=p) #generate coefficients
+interceptcoef=coefmag*np.random.uniform(low=-1, high=1) #generate intercept coefficient
+
+print(coefs)
+print(interceptcoef)
+
+
+#generate p columns of feature data
+for i in range(p):
+    np.random.seed(i)
+    stdmagrand=stdmag*np.random.rand() #standard deviation of ith column, generated via N(0, stdmag)
+    meanmagrand=meanmag*np.random.randn() #mean of ith column, generated via N(0, meanmag)
+    #print(stdmagrand)
+    #print(meanmagrand)
+    #select everything already in the dataframe, plus the new generated column 'X_i'
+    dfgen=dfgen.select('*', (meanmagrand+stdmagrand*randn(seed=i)).alias("X"+str(i)))
+
+dfgen=dfgen.drop("id")    
+    
+dfgen.take(1)
+
+#next we need to add the response column, can't do matrix multiplication with a dataframe so need iterative approach
+#first iteration we add the intercept, noise and the first feature column's contribution to the response
+dfgen=dfgen.select((interceptcoef+coefs[0]*dfgen["X0"]+noisestd*randn(seed=2*p+4)).alias("Y"+str(0)), '*')
+
+#subsequently add contributions from the other columns sequentially and iteractively to the response
+for i in range(p-1):
+    dfgen=dfgen.select((dfgen["Y"+str(i)]+coefs[i+1]*dfgen["X"+str(i+1)]).alias("Y"+str(i+1)), '*')
+    #drop the previous value of the response at each iteration
+    dfgen=dfgen.drop("Y"+str(i))
+
+print(dfgen.take(1))
+
+print('done')
+
+```
+
+For each column, we generate n independent samples from a normal distribution with mean 'meanmagrand' and standard deviation 'stdmagrand', which in turn are generated from N(0, meanmag) and N(0, stdmag) respectively. 'meanmag' and 'stdmag' are defined by the user and basically gives you some control of how large you want the columns to be while still keeping the columns generated from different distributions and the data random. Columns are appended to the initial dataframe via 'select'. The columns are named 'X0', 'X1', 'X2', ...
+
+It's not simple to do matrix multiplication or dot product in a Spark dataframe, so the response variable is generated as follows: first we require coefficient values of the model we want to fit, which are generated via an uniform distribution U(-coefmag, coefmag) where again coefmag is a parameter defined by the user which controls how large the intercept is. Next, once we generate the data, we initialise another column called 'Y0' which is the intercept+coefs[0]*X0+noise, and iteratively add the contribution from the other columns e.g. Y5=Y4+coefs[5]*X5 until we reach the last column.
+
+```python
+
+import time
+import datetime
+
+start = time.time()
+print(datetime.datetime.now())
+# Initialize `lr`
+print('Im running')
+lrgen = LinearRegression(labelCol="label", featuresCol="features", maxIter=args.maxiter, regParam=args.lamda, elasticNetParam=args.alpha)
+# Fit the data to the model
+linearModelgen = lrgen.fit(dfgenY)
+end = time.time()
+print(datetime.datetime.now())
+timetaken=end-start
+print(timetaken)
+print(linearModelgen.coefficients)
+print(linearModelgen.intercept)
+print(linearModelgen.summary.rootMeanSquaredError)
+print('done')
+
+results=[args.coresmax, args.executorcores, args.drivermemory, args.executormemory, args.n, args.p, args.maxiter, timetaken, linearModelgen.summary.rootMeanSquaredError, input_data_gen.getNumPartitions(), args.lamda, args.alpha]
+
+import csv
+with open("MLLRresultsbonus.txt", "a") as f:
+    wr = csv.writer(f)
+    wr.writerow(results)
+f.close()
+
+```
+
+The actual model fitting part is relatively straightforward. We time how long it takes for Spark to fit the linear regression and write 'results' which includes the benchmark time as well as parameters used in this run to a csv file. 
+
+
 
 
 
