@@ -267,13 +267,18 @@ dfgenY = spark.createDataFrame(input_data_gen, ["label", "features"])
 
 | n     | p    | Runtime(s) |
 |-------|------|------------|
-| 10^8  | 100  | 222.67     |
-| 10^9  | 100  | 1990.06    |
+| 10^3  | 100  | 9.48     |
+| 10^4  | 100  | 9.06    |
+| 10^5  | 100  | 10.22     |
+| 10^6  | 100  | 17.08    |
+| 10^7  | 100  | 43.01    |
+| 10^8  | 100  | 226.57     |
+| 10^9  | 100  | 2191.76   |
 | 10^10 | 100  | 32018.55   |
 | 100   | 10^5 | 2434.37    |
 | 100   | 10^6 | 3717.93    |
 
-Spark seems to run on large n, small p datasets more efficiently in terms of how much computational time scales with runtime. This is likely because large p, small n datasets require penalisation (feature selection) over a much larger number of columns which slows the algorithm down.
+For small n the bottleneck does not appear to be related to the size of the data, as from n=10^3 to 10^5 the Runtime was relatively constant. Overall Spark seems to run on large n, small p datasets more efficiently in terms of how much computational time scales with runtime. This is likely because large p, small n datasets require penalisation (feature selection) over a much larger number of columns which slows the algorithm down.
 
 ## Runtime vs number of cores used
 
