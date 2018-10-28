@@ -1,5 +1,5 @@
 theme: jekyll-theme-slate
-baseurl: "https://turingintern2018.github.io/"
+baseurl: ""
 url: "https://TuringIntern2018.github.io"
 title: High performance, large-scale regression
 description: This blog contains guidelines and instructions to run linear and logistic regression on very large datasets in distributed settings.
