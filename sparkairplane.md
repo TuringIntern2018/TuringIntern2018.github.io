@@ -346,7 +346,7 @@ Here are some sample run times for the Airline data analysis:
 
 | Algorithm           | Data distribution | Number of cores | Runtime (seconds) |
 |---------------------|-------------------|-----------------|-------------------|
-| Logistic Regression | Mesos             | 324             |                   |
+| Logistic Regression | Mesos             | 324             | 560.26            |
 | Logistic Regression | Local             | 36              | 1066.61           |
 | Random Forest       | Mesos             | 324             | 411.20            |
 | Random Forest       | Local             | 36              | 3057.40           |
