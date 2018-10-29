@@ -301,6 +301,7 @@ The intercept here is 0.00238 and the slope 0.00004622
 In general for large n, small p data, the run time decreases inversely linearly as the number of cores per executor increases, provided the maximum number of cores isn't capped. However, for large p, small n, decreasing cores per executor seems to decrease runtime instead. We suspect this could be due to the way data is parallelised in Spark. Currently the method for generating a 'large p small n' dataset generate a dataset with a lot of partitions each with a smaller amount of data, as it appends rows iteratively, each of which is an rdd. So it may be more efficient for Mesos to distribute data to more executors but each with a smaller amount of data. This is an area which requires further investigating.
 
 | n     | p    | cores per executor | Runtime(s) |
+|-------|------|--------------------|------------|
 | 100   | 10^5 | 4                  | 1107.30    |
 | 100   | 10^6 | 4                  | 4507.09    |
 | 100   | 10^5 | 36                 | 2534.42    |
