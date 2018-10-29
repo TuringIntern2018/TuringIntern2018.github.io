@@ -322,3 +322,8 @@ Trends for Logistic regression were mostly similar. For example, run time only i
 | 10^6  | 100  | 14.33    |
 | 10^7  | 100  | 23.29    |
 | 10^8  | 100  | 79.58     |
+
+
+![alt text][logo3]
+
+[logo3]: https://TuringIntern2018.github.io/timeversusnlogistic.png
