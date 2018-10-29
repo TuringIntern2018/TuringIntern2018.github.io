@@ -275,14 +275,18 @@ dfgenY = spark.createDataFrame(input_data_gen, ["label", "features"])
 | 10^8  | 100  | 226.57     |
 | 10^9  | 100  | 2191.76   |
 | 10^10 | 100  | 32018.55   |
-| 100   | 10^5 | 2434.37    |
-| 100   | 10^6 | 3717.93    |
+| 100   | 10^5 | 2534.42    |
+| 100   | 10^6 | 5176.72    |
 
 For small n the bottleneck does not appear to be related to the size of the data, as from n=10^3 to 10^5 the Runtime was relatively constant. Overall Spark seems to run on large n, small p datasets more efficiently in terms of how much computational time scales with runtime. This is likely because large p, small n datasets require penalisation (feature selection) over a much larger number of columns which slows the algorithm down.
 
+![alt text][logo2]
+
+[logo2]: https://TuringIntern2018.github.io/timeversusn.png
+
 ## Runtime vs number of cores used
 
-The inverse of runtime time seems to vary linearly as the number of cores increase, at least provided there's enough memory. The data used here was n=10^8, p=10, with 100gb memory per executor, and the algorithm was linear regression with LASSO penalisation.
+The inverse of runtime time seems to vary linearly as the number of cores increase, at least provided there's enough memory. The data used here was n=10^8, p=10, with 100gb memory per executor, and the algorithm was linear regression with LASSO penalisation. Here the total number of cores varies according to how many cores per executor (up to 36), capped by the maximum number of cores (up to 324).
 
 ![alt text][logo]
 
@@ -294,3 +298,10 @@ The intercept here is 0.00238 and the slope 0.00004622
 
 [logo1]: http://TuringIntern2018.github.io/oneoveryplot.png
 
+In general for large n, small p data, the run time decreases inversely linearly as the number of cores per executor increases, provided the maximum number of cores isn't capped. However, for large p, small n, decreasing cores per executor seems to decrease runtime instead. We suspect this could be due to the way data is parallelised in Spark. Currently the method for generating a 'large p small n' dataset generate a dataset with a lot of partitions each with a smaller amount of data, as it appends rows iteratively, each of which is an rdd. So it may be more efficient for Mesos to distribute data to more executors but each with a smaller amount of data. This is an area which requires further investigating.
+
+| n     | p    | cores per executor | Runtime(s) |
+| 100   | 10^5 | 4                  | 1107.30    |
+| 100   | 10^6 | 4                  | 4507.09    |
+| 100   | 10^5 | 36                 | 2534.42    |
+| 100   | 10^6 | 36                 | 5176.72    |
