@@ -286,11 +286,11 @@ The inverse of runtime time seems to vary linearly as the number of cores increa
 
 ![alt text][logo]
 
-[logo]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/yplot.png
+[logo]: https://TuringIntern2018.github.io/yplot.png
 
 The intercept here is 0.00238 and the slope 0.00004622
 
 ![alt text][logo1]
 
-[logo1]: https://github.com/TuringIntern2018/TuringIntern2018.github.io/blob/master/oneoveryplot.png
+[logo1]: http://TuringIntern2018.github.io/oneoveryplot.png
 
