@@ -306,3 +306,19 @@ In general for large n, small p data, the run time decreases inversely linearly 
 | 100   | 10^6 | 4                  | 4507.09    |
 | 100   | 10^5 | 36                 | 2534.42    |
 | 100   | 10^6 | 36                 | 5176.72    |
+
+
+## Logistic regression
+
+## Runtime vs data size
+
+Trends for Logistic regression were mostly similar. For example, run time only increases significantly for large datasizes, albeit the run times are smaller for larger values of n and noiser/larger for small values of n (in the sense that the time for 10^3 was larger than 10^4 despite averaging over several runs).
+
+| n     | p    | Runtime(s) |
+|-------|------|------------|
+| 10^3  | 100  | 23.40     |
+| 10^4  | 100  | 18.08   |
+| 10^5  | 100  | 17.74     |
+| 10^6  | 100  | 14.33    |
+| 10^7  | 100  | 23.29    |
+| 10^8  | 100  | 79.58     |
