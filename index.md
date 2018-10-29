@@ -15,7 +15,7 @@ Summaries of the work conducted can be found on the following pages:
 
 [Other Tensorflow tips](https://turingintern2018.github.io/tensorflowother)
 
-The project was conducted by Alessandra Cabassi (University of Cambridge) and Junyang Wang (University of Newcastle) under the supervision of:
+The project was conducted by Alessandra Cabassi (PhD student, University of Cambridge) and Junyang Wang (PhD student, University of Newcastle) under the supervision of:
 
 Anthony Lee (Senior Lecturer, The Alan Turing Institute, University of Bristol)
 
