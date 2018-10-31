@@ -1,6 +1,6 @@
 # Homepage
 
-This website serves as a blogpost summarising the work conducted in the High performance, large-scale regression project, part of the [Alan Turing Institute](https://www.turing.ac.uk/)'s Summer Internship programme in 2018, sponsored by [Cray Computing](https://www.cray.com/). The aims of the project were to 'To investigate distributed, scalable approaches to the standard statistical task of highdimensional regression with very large amounts of data, with the ultimate goal of informing
+This website serves as a blogpost summarising the work conducted in the High performance, large-scale regression project, part of the [Alan Turing Institute](https://www.turing.ac.uk/)'s Summer Internship programme in 2018, sponsored by [Cray Inc.](https://www.cray.com/). The aims of the project were to 'To investigate distributed, scalable approaches to the standard statistical task of highdimensional regression with very large amounts of data, with the ultimate goal of informing
 current best practice in terms of algorithms, architectures and implementations.' The [Cray Urika-GX supercomputer](https://www.cray.com/products/analytics/urika-gx) provided the computing power required to implement and run regression algorithms on very large datasets. An airplane dataset documenting flight arrival and departure details for all commercial flights within the USA, from October 1987 to April 2008, consisting of over 120 million rows of data, was used as a case study.
 
 Summaries of the work conducted can be found on the following pages:
