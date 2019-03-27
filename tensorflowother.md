@@ -165,6 +165,6 @@ Even with a large number of CPUs on the same machine, it is easy to observe that
 
 Using distributed TensorFlow can help, but does not entirely solves the problem. Indeed, when splitting the computations between multiple workers, each worker is responsible for loading a different batch of data and asynchronously updating the model parameters, that are stored on a separate parameter server. Therefore, when using n workers, the time needed to train a LinearRegressor or LinearClassifier is roughly divided by n. Unfortunately the procedure to start a large number of workers is quite cumbersome, and starting more than 10 workers is not very convenient (for details, see the ‘How to parallelise TensorFlow code’ section). 
 
-Finally, it is worthwhile to mention that TensorFlow is in continuous evolution. This means that the features that are not available now, may be implemented very soon. At the same time, most classes and methods are rapidly  
-
 To conclude, before starting to use TensorFlow, we recommend weighing the pros and cons of using TensorFlow and consider what are the main concerns: speed? ease of use? portability? Finally, many other factors should be taken into consideration: programming abilities, computing resources available, desired metrics and output of the analysis, etc. Depending on those, it may or may not be useful to use TensorFlow.
+
+Finally, it is worthwhile to mention that TensorFlow is in continuous evolution. This means that the features that are not available now, may be implemented very soon.
