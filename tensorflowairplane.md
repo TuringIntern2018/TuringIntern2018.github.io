@@ -120,7 +120,7 @@ predict_inpf = functools.partial(input_fn, predict_file, num_epochs=1, shuffle=F
 
 Just like training, all you need for the evaluation of an Estimator is encapsulated in one function:
 ```python
-result = classifier.evaluate(test_inpf)
+result = classifier.evaluate(eval_inpf)
 ```
 
 The output of the evaluation is a set of metrics that can be displayed 
