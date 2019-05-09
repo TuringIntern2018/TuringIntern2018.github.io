@@ -168,10 +168,10 @@ def get_flat_weights(model):
    weights_flat = np.concatenate([item.flatten() for item in weight_values], axis=0)
    return weight_names, weights_flat
 ```
-The full code of this tutorial can be found at http://acabassi.github.com/large-scale-regression/tensorflow-linear-classifier.py The version of the code that can be run in parallel can be found at http://acabassi.github.com/large-scale-regression/tensorflow-linear-classifier-parallel.py
+The full code of this tutorial can be found at https://github.com/acabassi/large-scale-regression/blob/master/tensorflow-linear-classifier.py The version of the code that can be run in parallel can be found at https://github.com/acabassi/large-scale-regression/blob/master/tensorflow-linear-classifier-parallel.py
 
 ## Linear regression
 
 If instead we wanted to predict exactly the flight delays in minutes, we could have done exactly the same as above, replacing `LinearClassifier` with `LinearRegressor` and not binarising the `ArrDelay` variable in the input function.
 
-The full code to perform linear regression on the airline data the can be found at http://acabassi.github.com/large-scale-regression/tensorflow-linear-regressor.py The version of the code that can be run in parallel can be found at http://acabassi.github.com/large-scale-regression/tensorflow-linear-regressor-parallel.py
+The full code to perform linear regression on the airline data the can be found at https://github.com/acabassi/large-scale-regression/blob/master/tensorflow-linear-regressor.py The version of the code that can be run in parallel can be found at https://github.com/acabassi/large-scale-regression/blob/master/tensorflow-linear-regressor-parallel.py
